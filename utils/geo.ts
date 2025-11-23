@@ -41,3 +41,14 @@ export const getDaysSince = (timestamp: number): number => {
   const oneDayMs = 1000 * 60 * 60 * 24;
   return Math.floor(diff / oneDayMs);
 };
+
+// Verifica se o local exige visita qualitativa (foto)
+export const isQualitativeTarget = (nomeEquipamento: string): boolean => {
+  const upper = nomeEquipamento.toUpperCase();
+  return (
+    upper.includes("ESCOLA") ||
+    upper.includes("EMEI") ||
+    upper.includes("CENTRO DE SAUDE") ||
+    upper.includes("UPA")
+  );
+};

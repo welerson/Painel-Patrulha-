@@ -17,6 +17,8 @@ export const savePatrol = async (patrol: ActivePatrol): Promise<void> => {
     if (e.code === 'permission-denied') {
         // Apenas aviso no console para não poluir, pois a UI do Gestor já avisa
         console.warn("SavePatrol: Permissão negada (Verifique regras do Firestore).");
+    } else if (e.code === 'resource-exhausted') {
+        console.warn("SavePatrol: Cota excedida ou muitas gravações (resource-exhausted).");
     } else {
         console.error("Erro ao salvar patrulha:", e);
     }
@@ -26,10 +28,13 @@ export const savePatrol = async (patrol: ActivePatrol): Promise<void> => {
 export const saveVisit = async (visit: Visit): Promise<void> => {
   try {
     const visitRef = doc(db, VISITS_COLLECTION, visit.id);
-    await setDoc(visitRef, visit);
+    // Merge true permite adicionar a foto posteriormente sem apagar os outros dados
+    await setDoc(visitRef, visit, { merge: true });
   } catch (e: any) {
     if (e.code === 'permission-denied') {
         console.warn("SaveVisit: Permissão negada (Verifique regras do Firestore).");
+    } else if (e.code === 'resource-exhausted') {
+        console.warn("SaveVisit: Cota excedida ou muitas gravações (resource-exhausted).");
     } else {
         console.error("Erro ao salvar visita:", e);
     }

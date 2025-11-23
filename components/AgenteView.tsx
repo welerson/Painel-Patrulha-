@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MapComponent } from './MapComponent';
 import { MOCK_PROPRIOS, REGIONALS, VISITING_RADIUS_METERS, DEBOUNCE_MINUTES, getSimulationRoute } from '../constants';
 import { ActivePatrol, Proprio, RoutePoint, Visit, UserSession } from '../types';
-import { getDistanceFromLatLonInMeters, getStartOfDay } from '../utils/geo';
+import { getDistanceFromLatLonInMeters, getStartOfDay, isQualitativeTarget, formatDate, formatTime } from '../utils/geo';
 import { savePatrol, saveVisit, subscribeToVisits } from '../services/storage';
 
 interface AgenteViewProps {
@@ -19,6 +19,12 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
   const [currentPos, setCurrentPos] = useState<RoutePoint | undefined>(undefined);
   const [patrolPath, setPatrolPath] = useState<RoutePoint[]>([]);
   const [nearbyVisits, setNearbyVisits] = useState<Visit[]>([]);
+  
+  // Camera States
+  const [showCamera, setShowCamera] = useState(false);
+  const [activeVisitForPhoto, setActiveVisitForPhoto] = useState<Visit | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   
   // References for mutable state inside interval/geolocation callbacks
   const patrolPathRef = useRef<RoutePoint[]>([]);
@@ -39,7 +45,9 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
     // Inscrever para receber visitas em tempo real
     // Adicionado tratamento de erro para evitar crash caso permissões falhem
     const unsubscribe = subscribeToVisits((visits) => {
-      setNearbyVisits(visits);
+      // Ordena por timestamp decrescente para mostrar a mais recente no topo
+      const sorted = visits.sort((a, b) => b.timestamp - a.timestamp);
+      setNearbyVisits(sorted);
     }, (error) => {
        // Silenciar erro de permissão aqui pois a view do agente continua funcionando localmente
        if (error.code !== 'permission-denied') {
@@ -56,6 +64,92 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
       setFilteredProprios(MOCK_PROPRIOS);
     }
   }, [selectedRegional]);
+
+  // --- Camera Logic ---
+  const startCamera = async (visit: Visit) => {
+    setActiveVisitForPhoto(visit);
+    setShowCamera(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: "environment" } // Use back camera if available
+      });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+      }
+    } catch (err) {
+      alert("Erro ao acessar câmera: " + err);
+      setShowCamera(false);
+    }
+  };
+
+  const stopCamera = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+    }
+    setShowCamera(false);
+    setActiveVisitForPhoto(null);
+  };
+
+  const capturePhoto = () => {
+    if (!videoRef.current || !canvasRef.current || !activeVisitForPhoto) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) return;
+
+    // Set canvas dimensions to video dimensions
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    // Draw video frame
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    // --- Watermark Logic ---
+    const fontSize = Math.max(16, canvas.width * 0.03); // Responsive font size
+    ctx.font = `bold ${fontSize}px monospace`;
+    ctx.fillStyle = 'yellow';
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = 3;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+
+    const dateStr = formatDate(Date.now());
+    const timeStr = formatTime(Date.now());
+    const coordsStr = `LAT: ${activeVisitForPhoto.lat.toFixed(5)} LNG: ${activeVisitForPhoto.lng.toFixed(5)}`;
+    const locationStr = activeVisitForPhoto.nome_equipamento.substring(0, 30);
+    // Informação de autoria
+    const agentInfoStr = `Agente: ${user.name || 'N/A'} | ${viaturaId}`;
+
+    const padding = 20;
+    const lineHeight = fontSize * 1.2;
+
+    // Draw Text with Shadow/Stroke for visibility
+    const drawText = (text: string, x: number, y: number) => {
+      ctx.strokeText(text, x, y);
+      ctx.fillText(text, x, y);
+    };
+
+    // Bottom Left Positioning (Stacked upwards)
+    drawText(agentInfoStr, padding, canvas.height - padding - lineHeight * 3);
+    drawText(dateStr + ' ' + timeStr, padding, canvas.height - padding - lineHeight * 2);
+    drawText(coordsStr, padding, canvas.height - padding - lineHeight);
+    drawText(locationStr, padding, canvas.height - padding);
+
+    // Save Image
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.7); // Compress quality 0.7
+    
+    // Update Visit in Firebase
+    const updatedVisit = { ...activeVisitForPhoto, photo: dataUrl };
+    saveVisit(updatedVisit); // This will merge/update the existing visit
+
+    stopCamera();
+  };
+
+  // --- Patrol Logic ---
 
   const startPatrol = (simulate = false) => {
     if (!viaturaId) {
@@ -160,9 +254,9 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
     patrolPathRef.current = [...patrolPathRef.current, point];
     setPatrolPath(patrolPathRef.current);
 
-    // THROTTLING: Save to Firebase only every 2 seconds to avoid saturation
-    // The visual map updates every 100ms (simulation) or 1s (GPS), but DB writes follow this limit.
-    if (activePatrolRef.current && (timestamp - lastSaveTimeRef.current > 2000)) {
+    // THROTTLING: Save to Firebase only every 10 seconds to avoid saturation/resource exhaustion
+    // Increased from 2s to 10s to handle backpressure
+    if (activePatrolRef.current && (timestamp - lastSaveTimeRef.current > 10000)) {
       activePatrolRef.current.pontos = patrolPathRef.current;
       savePatrol(activePatrolRef.current);
       lastSaveTimeRef.current = timestamp;
@@ -183,7 +277,7 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
     // Force final save when stopping to ensure complete data
     if (activePatrolRef.current) {
       activePatrolRef.current.fimTurno = Date.now();
-      activePatrolRef.current.pontos = patrolPathRef.current; // Ensure all points are saved
+      activePatrolRef.current.pontos = patrolPathRef.current; 
       savePatrol(activePatrolRef.current);
     }
     
@@ -229,10 +323,7 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
       regional: selectedRegional
     };
 
-    // Optimistic Update: Show immediately on screen
-    setNearbyVisits(prev => [newVisit, ...prev]);
-
-    // Save to Firebase
+    // Save to Firebase (Optimistic Update is handled by the subscription)
     saveVisit(newVisit);
       
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
@@ -240,9 +331,10 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
 
   // Calculate today's visits for this specific vehicle
   const startOfToday = getStartOfDay();
-  const visitsTodayCount = nearbyVisits.filter(
+  const visitsToday = nearbyVisits.filter(
     v => v.idViatura === viaturaId && v.timestamp >= startOfToday
-  ).length;
+  );
+  const visitsTodayCount = visitsToday.length;
 
   return (
     <div className="flex flex-col h-screen bg-slate-100 overflow-hidden">
@@ -323,16 +415,50 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
           visits={nearbyVisits}
           currentPosition={currentPos}
           routePath={patrolPath}
-          // Only center automatically if not active. When active, map follows car.
           center={!patrolActive ? [-19.9167, -43.9345] : undefined} 
           zoom={patrolActive ? 15 : 12}
         />
         
+        {/* Visit Log Overlay (During Patrol) */}
+        {patrolActive && (
+           <div className="absolute top-4 right-4 w-72 bg-white/95 backdrop-blur p-3 rounded-xl shadow-xl z-[400] border border-slate-200 max-h-64 overflow-y-auto">
+             <h3 className="text-xs font-bold text-slate-500 uppercase mb-2 sticky top-0 bg-white/95 pb-1">Registro de Visitas (Ao Vivo)</h3>
+             <div className="space-y-2">
+                {visitsToday.slice(0, 10).map((visit) => {
+                  const needsPhoto = isQualitativeTarget(visit.nome_equipamento);
+                  const hasPhoto = !!visit.photo;
+                  return (
+                    <div key={visit.id} className="text-xs border-l-2 border-blue-500 pl-2 py-1 bg-blue-50 rounded-r relative">
+                      <p className="font-bold text-slate-800">{visit.nome_equipamento}</p>
+                      <p className="text-slate-500">{formatTime(visit.timestamp)}</p>
+                      
+                      {needsPhoto && !hasPhoto && (
+                        <button 
+                          onClick={() => startCamera(visit)}
+                          className="mt-1 w-full bg-amber-500 text-white font-bold py-1 px-2 rounded flex items-center justify-center gap-1 hover:bg-amber-600 animate-pulse"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                          Registrar Foto
+                        </button>
+                      )}
+                      {hasPhoto && (
+                         <span className="mt-1 inline-flex items-center text-[10px] font-bold text-emerald-600 bg-emerald-100 px-1 rounded border border-emerald-200">
+                           ✓ Foto Registrada
+                         </span>
+                      )}
+                    </div>
+                  );
+                })}
+                {visitsToday.length === 0 && <p className="text-slate-400 text-xs italic text-center py-2">Nenhuma visita registrada ainda.</p>}
+             </div>
+           </div>
+        )}
+
         {/* Stats Overlay */}
         {patrolActive && (
            <div className="absolute bottom-6 left-4 right-4 md:left-auto md:right-4 md:w-64 bg-white/95 backdrop-blur p-4 rounded-xl shadow-2xl z-[400] border border-slate-200 flex flex-row md:flex-col justify-around md:gap-4 text-center">
              <div>
-               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Visitas Hoje (VTR)</p>
+               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Visitas Hoje</p>
                <p className="font-bold text-2xl text-slate-800">
                  {visitsTodayCount}
                </p>
@@ -347,6 +473,39 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
            </div>
         )}
       </div>
+
+      {/* Camera Modal */}
+      {showCamera && (
+        <div className="fixed inset-0 bg-black z-[1000] flex flex-col">
+          <div className="relative flex-grow bg-black flex items-center justify-center overflow-hidden">
+             <video ref={videoRef} className="absolute w-full h-full object-cover" autoPlay playsInline muted></video>
+             <canvas ref={canvasRef} className="hidden"></canvas>
+             
+             {/* Overlay Info */}
+             <div className="absolute bottom-24 left-4 right-4 z-10 text-yellow-300 font-mono text-xs md:text-sm drop-shadow-md pointer-events-none">
+               <p>{activeVisitForPhoto?.nome_equipamento}</p>
+               <p>{formatDate(Date.now())} {formatTime(Date.now())}</p>
+               <p>LAT: {activeVisitForPhoto?.lat.toFixed(5)} LNG: {activeVisitForPhoto?.lng.toFixed(5)}</p>
+             </div>
+          </div>
+          
+          <div className="h-24 bg-slate-900 flex items-center justify-around p-4">
+             <button 
+               onClick={stopCamera}
+               className="text-white font-bold px-6 py-2 rounded border border-slate-600"
+             >
+               Cancelar
+             </button>
+             <button 
+               onClick={capturePhoto}
+               className="w-16 h-16 bg-white rounded-full border-4 border-slate-300 flex items-center justify-center active:bg-slate-200 active:scale-95 transition"
+             >
+               <div className="w-12 h-12 bg-slate-900 rounded-full"></div>
+             </button>
+             <div className="w-20"></div> {/* Spacer */}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

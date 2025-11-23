@@ -26,6 +26,7 @@ export interface Visit {
   idViatura: string;
   agente: string;
   regional: string;
+  photo?: string; // Base64 string da foto com marca d'agua
 }
 
 export interface RoutePoint {

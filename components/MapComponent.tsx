@@ -165,6 +165,22 @@ export const MapComponent: React.FC<MapProps> = ({ proprios, visits, currentPosi
                     <div className="mb-2 text-xs text-slate-500">
                       Última visita: <strong>{formatDate(lastVisit.timestamp)}</strong> às {formatTime(lastVisit.timestamp)}
                       {status !== 'green' && <span className="block text-[10px] text-slate-400">({getDaysSince(lastVisit.timestamp)} dias atrás)</span>}
+                      
+                      {/* Display Photo if available */}
+                      {lastVisit.photo && (
+                        <div className="mt-2">
+                          <p className="text-[10px] font-bold text-slate-400 mb-1">PROVA VISUAL (Ultima Visita)</p>
+                          <img 
+                            src={lastVisit.photo} 
+                            alt="Prova de Visita" 
+                            className="w-full h-auto rounded border border-slate-300 shadow-sm cursor-pointer hover:opacity-90 transition"
+                            onClick={() => {
+                              const w = window.open("");
+                              w?.document.write(`<img src="${lastVisit.photo}" style="width:100%; max-width:800px; margin: 0 auto; display:block;">`);
+                            }}
+                          />
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="mb-2 text-xs text-red-500 font-semibold">
@@ -173,11 +189,14 @@ export const MapComponent: React.FC<MapProps> = ({ proprios, visits, currentPosi
                   )}
 
                   {propVisits.length > 0 && (
-                    <div className="max-h-24 overflow-y-auto space-y-1 border-t border-slate-200 pt-1">
+                    <div className="max-h-24 overflow-y-auto space-y-1 border-t border-slate-200 pt-1 mt-2">
                       <p className="text-[10px] text-slate-400 uppercase font-bold">Histórico Recente</p>
                       {propVisits.slice(0, 3).map((v, i) => (
-                        <div key={i} className="text-xs text-slate-500 pb-1">
-                          <span className="font-mono">{formatDate(v.timestamp)} {formatTime(v.timestamp)}</span><br/>
+                        <div key={i} className="text-xs text-slate-500 pb-1 border-b border-slate-100 last:border-0">
+                          <div className="flex justify-between">
+                            <span className="font-mono">{formatDate(v.timestamp)} {formatTime(v.timestamp)}</span>
+                            {v.photo && <span className="text-[10px] text-blue-500">📷</span>}
+                          </div>
                           <span className="text-[10px]">{v.idViatura} ({v.agente})</span>
                         </div>
                       ))}
