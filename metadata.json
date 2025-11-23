@@ -1,0 +1,7 @@
+{
+  "name": "Patrulha de Próprios PBH",
+  "description": "Sistema de monitoramento e registro de visitas a próprios municipais da Guarda Civil Municipal de Belo Horizonte.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
