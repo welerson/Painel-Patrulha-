@@ -51,7 +51,7 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
     }, (error) => {
        // Silenciar erro de permissão aqui pois a view do agente continua funcionando localmente
        if (error.code !== 'permission-denied') {
-           console.error("Erro assinatura visitas (Agente):", error);
+           // console.error("Erro assinatura visitas (Agente):", error);
        }
     });
     return () => unsubscribe();
@@ -117,8 +117,9 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
     ctx.textAlign = 'left';
     ctx.textBaseline = 'bottom';
 
-    const dateStr = formatDate(Date.now());
-    const timeStr = formatTime(Date.now());
+    const now = Date.now();
+    const dateStr = formatDate(now);
+    const timeStr = formatTime(now);
     const coordsStr = `LAT: ${activeVisitForPhoto.lat.toFixed(5)} LNG: ${activeVisitForPhoto.lng.toFixed(5)}`;
     const locationStr = activeVisitForPhoto.nome_equipamento.substring(0, 30);
     // Informação de autoria
@@ -142,8 +143,16 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
     // Save Image
     const dataUrl = canvas.toDataURL('image/jpeg', 0.7); // Compress quality 0.7
     
+    // Calculate Duration
+    const durationSeconds = Math.floor((now - activeVisitForPhoto.timestamp) / 1000);
+
     // Update Visit in Firebase
-    const updatedVisit = { ...activeVisitForPhoto, photo: dataUrl };
+    const updatedVisit: Visit = { 
+      ...activeVisitForPhoto, 
+      photo: dataUrl,
+      photoTimestamp: now,
+      durationSeconds: durationSeconds
+    };
     saveVisit(updatedVisit); // This will merge/update the existing visit
 
     stopCamera();

@@ -27,6 +27,8 @@ export interface Visit {
   agente: string;
   regional: string;
   photo?: string; // Base64 string da foto com marca d'agua
+  photoTimestamp?: number; // Momento exato da foto
+  durationSeconds?: number; // Tempo entre chegada e foto (permanência)
 }
 
 export interface RoutePoint {
