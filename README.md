@@ -1,20 +1,44 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Patrulha de Próprios PBH
 
-# Run and deploy your AI Studio app
+Sistema de monitoramento e registro de visitas a próprios municipais da Guarda Civil Municipal de Belo Horizonte.
 
-This contains everything you need to run your app locally.
+## Funcionalidades
 
-View your app in AI Studio: https://ai.studio/apps/drive/1OdA2Tj_uJj6HN4AzZGzsgWgC1H7nxP0u
+- **Agente:**
+  - Login simplificado (Viatura/Agente).
+  - Geolocalização em tempo real.
+  - Simulação de rota automática por Regional.
+  - Registro automático de visitas a próprios (escolas, postos de saúde, etc.) ao se aproximar (Geofencing).
+  - Visualização de rota e status no mapa.
 
-## Run Locally
+- **Gestor:**
+  - Dashboard em tempo real.
+  - Monitoramento de múltiplas viaturas simultâneas.
+  - Filtros por Regional, Viatura e Data.
+  - Relatórios em PDF e gráficos estatísticos.
 
-**Prerequisites:**  Node.js
+## Como rodar localmente
 
+1. Clone o repositório.
+2. Instale as dependências:
+   ```bash
+   npm install
+   ```
+3. Inicie o servidor de desenvolvimento:
+   ```bash
+   npm run dev
+   ```
+4. Acesse `http://localhost:5173` no navegador.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Tecnologias
+
+- React + Vite
+- TypeScript
+- Leaflet (Mapas)
+- Tailwind CSS (Estilização)
+- Recharts (Gráficos)
+- jsPDF (Relatórios)
+
+## Estrutura de Dados
+
+Os dados dos próprios foram extraídos de base oficial da PBH e as coordenadas são simuladas em torno dos centros regionais para fins de demonstração. Em produção, deve-se conectar a uma API real de geocoding ou banco de dados geoespacial.
