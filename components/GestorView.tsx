@@ -153,11 +153,11 @@ export const GestorView: React.FC<GestorViewProps> = ({ user, onLogout }) => {
       {permissionError && (
         <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 relative z-50">
           <p className="font-bold">Acesso Bloqueado pelo Firebase</p>
-          <p className="text-sm">Para corrigir, acesse o <strong>Firebase Console &gt; Firestore Database &gt; Rules</strong> e altere para:</p>
-          <pre className="bg-red-50 p-2 mt-1 rounded text-xs font-mono border border-red-200">
-            allow read, write: if true;
+          <p className="text-sm">Como você ativou a Autenticação, atualize as regras em <strong>Firebase Console &gt; Firestore Database &gt; Rules</strong> para:</p>
+          <pre className="bg-red-50 p-2 mt-1 rounded text-xs font-mono border border-red-200 overflow-x-auto">
+            allow read, write: if request.auth != null;
           </pre>
-          <p className="text-xs mt-1">(Ou ative a "Autenticação Anônima" no menu Authentication &gt; Sign-in method)</p>
+          <p className="text-xs mt-1 text-red-500">Se o erro persistir, verifique se o arquivo <strong>firebaseConfig.ts</strong> contém as chaves do SEU projeto.</p>
         </div>
       )}
 
@@ -255,7 +255,7 @@ export const GestorView: React.FC<GestorViewProps> = ({ user, onLogout }) => {
              <p className="font-bold mb-1">Monitoramento em Tempo Real</p>
              <p>Viaturas Ativas (Total): {filteredRoutes.length}</p>
              <p className={`font-bold mt-1 ${permissionError ? 'text-red-600' : 'text-emerald-600'}`}>
-               ● {permissionError ? 'Erro de Permissão' : 'Online (Firebase)'}
+               ● {permissionError ? 'Erro de Permissão (Banco)' : 'Online (Firebase)'}
              </p>
              {!permissionError && (
                <div className="mt-2 max-h-24 overflow-y-auto">

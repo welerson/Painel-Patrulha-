@@ -23,23 +23,16 @@ const App: React.FC = () => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
-        console.log("Firebase Conectado (ID):", firebaseUser.uid);
+        console.log("Firebase Conectado. UID:", firebaseUser.uid);
         setIsFirebaseConnected(true);
       } else {
-        console.log("Tentando conexão anônima...");
+        console.log("Iniciando autenticação anônima...");
         signInAnonymously(auth).catch((error) => {
           const errorCode = error.code;
+          console.error("Erro na autenticação:", error);
           
-          // FIX: Tratar erro quando Auth Anônima não está ativada no console
-          // Permite prosseguir se o Firestore estiver em modo público (Teste)
-          if (errorCode === 'auth/admin-restricted-operation' || errorCode === 'auth/operation-not-allowed') {
-             console.warn("ALERTA: Autenticação Anônima não habilitada no console do Firebase.");
-             console.warn("Tentando conexão sem autenticação (O Firestore precisa estar com regras públicas 'allow read, write: if true').");
-             setIsFirebaseConnected(true);
-          } else {
-             console.error("Erro crítico na autenticação:", error);
-             setAuthError(`Erro de conexão (${errorCode}): ${error.message}`);
-          }
+          // Se falhar mesmo com Auth ativada, provavelmente é configuração de projeto ou chave de API errada
+          setAuthError(`Erro de conexão (${errorCode}): ${error.message}. Verifique firebaseConfig.ts.`);
         });
       }
     });
@@ -62,7 +55,7 @@ const App: React.FC = () => {
       <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white p-4">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mb-4"></div>
         <h2 className="text-xl font-bold">Conectando ao sistema...</h2>
-        <p className="text-slate-400 text-sm mt-2">Estabelecendo conexão segura com o banco de dados.</p>
+        <p className="text-slate-400 text-sm mt-2">Autenticando com Firebase...</p>
       </div>
     );
   }
