@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MapComponent } from './MapComponent';
 import { MOCK_PROPRIOS, REGIONALS, VISITING_RADIUS_METERS, DEBOUNCE_MINUTES, getSimulationRoute } from '../constants';
 import { ActivePatrol, Proprio, RoutePoint, Visit, UserSession } from '../types';
-import { getDistanceFromLatLonInMeters, formatTime } from '../utils/geo';
-import { savePatrol, saveVisit, getVisits } from '../services/storage';
+import { getDistanceFromLatLonInMeters } from '../utils/geo';
+import { savePatrol, saveVisit, subscribeToVisits } from '../services/storage';
 
 interface AgenteViewProps {
   user: UserSession;
@@ -30,9 +30,11 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
   const [filteredProprios, setFilteredProprios] = useState<Proprio[]>([]);
 
   useEffect(() => {
-    // Load previous visits for context on the map
-    const loaded = getVisits();
-    setNearbyVisits(loaded);
+    // Inscrever para receber visitas em tempo real (para mostrar histórico no mapa)
+    const unsubscribe = subscribeToVisits((visits) => {
+      setNearbyVisits(visits);
+    });
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -55,7 +57,7 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
     }
 
     const newPatrol: ActivePatrol = {
-      id: Date.now().toString(),
+      id: Date.now().toString(), // ID único baseado em timestamp
       idViatura: viaturaId,
       agente: user.name || 'Agente',
       regional: selectedRegional,
@@ -68,6 +70,9 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
     setPatrolPath([]);
     setPatrolActive(true);
     setIsSimulating(simulate);
+
+    // Salvar estado inicial da patrulha no Firebase
+    savePatrol(newPatrol);
 
     if (simulate) {
       startSimulation();
@@ -114,11 +119,7 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
 
     simulationIntervalRef.current = setInterval(() => {
       if (routeIndex >= route.length - 1) {
-        // Loop route for continuous simulation or stop? Let's loop for continuous testing of "varias viaturas"
         routeIndex = 0;
-        // clearInterval(simulationIntervalRef.current);
-        // alert("Simulação de rota concluída.");
-        // return;
       }
 
       const p1 = route[routeIndex];
@@ -149,9 +150,10 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
     patrolPathRef.current = [...patrolPathRef.current, point];
     setPatrolPath(patrolPathRef.current);
 
-    // Update active patrol object and save to storage (simulating backend update)
+    // Update active patrol object and save to storage (Firebase)
     if (activePatrolRef.current) {
       activePatrolRef.current.pontos = patrolPathRef.current;
+      // Fire and forget save to maintain performance
       savePatrol(activePatrolRef.current);
     }
 
@@ -190,8 +192,8 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
   };
 
   const registerVisit = (proprio: Proprio, timestamp: number) => {
-    // Debounce check
-    const recentVisits = getVisits().filter(
+    // Debounce check using the visits currently in state (synced from Firebase)
+    const recentVisits = nearbyVisits.filter(
       v => v.proprioId === proprio.cod && 
            v.idViatura === viaturaId && 
            (timestamp - v.timestamp) < (DEBOUNCE_MINUTES * 60 * 1000)
@@ -211,8 +213,11 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
         regional: selectedRegional
       };
 
+      // Save directly to Firebase
       saveVisit(newVisit);
-      setNearbyVisits(prev => [...prev, newVisit]);
+      
+      // Local state update happens via subscription, but we can optimistically update for immediate feedback if needed
+      // but waiting for subscription ensures consistency across devices
       
       if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
     }

@@ -7,9 +7,9 @@ import { UserSession, UserRole } from './types';
 const App: React.FC = () => {
   const [user, setUser] = useState<UserSession | null>(null);
 
-  // Check for existing session on mount
+  // Check for existing session on mount using sessionStorage (per tab isolation)
   useEffect(() => {
-    const savedUser = localStorage.getItem('ppbh_user');
+    const savedUser = sessionStorage.getItem('ppbh_user');
     if (savedUser) {
       setUser(JSON.parse(savedUser));
     }
@@ -17,12 +17,13 @@ const App: React.FC = () => {
 
   const handleLogin = (userData: UserSession) => {
     setUser(userData);
-    localStorage.setItem('ppbh_user', JSON.stringify(userData));
+    // Use sessionStorage so one tab can be Agente and another Gestor
+    sessionStorage.setItem('ppbh_user', JSON.stringify(userData));
   };
 
   const handleLogout = () => {
     setUser(null);
-    localStorage.removeItem('ppbh_user');
+    sessionStorage.removeItem('ppbh_user');
   };
 
   if (!user) {

@@ -95,9 +95,12 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
             Entrar
           </button>
 
-          <p className="text-xs text-center text-slate-400 mt-4">
-            Modo de demonstração: Dados salvos localmente.
-          </p>
+          <div className="text-xs text-center text-slate-400 mt-4 border-t pt-4">
+            <p className="font-bold mb-1">Modo Multitarefa:</p>
+            <p>Sessão isolada por aba (sessionStorage).</p>
+            <p>Dados compartilhados (localStorage).</p>
+            <p className="mt-2">Você pode abrir uma aba como Agente e outra como Gestor simultaneamente.</p>
+          </div>
         </form>
       </div>
     </div>

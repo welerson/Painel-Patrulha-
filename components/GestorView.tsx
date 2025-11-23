@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MapComponent } from './MapComponent';
 import { MOCK_PROPRIOS, REGIONALS } from '../constants';
 import { Visit, ActivePatrol, UserSession } from '../types';
-import { getVisits, getPatrols } from '../services/storage';
+import { subscribeToPatrols, subscribeToVisits } from '../services/storage';
 import { formatDate, formatTime } from '../utils/geo';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -29,18 +29,22 @@ export const GestorView: React.FC<GestorViewProps> = ({ user, onLogout }) => {
   const [filteredRoutes, setFilteredRoutes] = useState<ActivePatrol[]>([]);
 
   useEffect(() => {
-    // Initial Load
-    loadData();
+    // Inscrever nos listeners do Firebase para atualização em tempo real
+    // Isso garante que assim que uma viatura move ou visita algo, o gestor vê.
+    
+    const unsubscribePatrols = subscribeToPatrols((data) => {
+      setAllPatrols(data);
+    });
 
-    // Polling for real-time updates from simulations in other tabs
-    const interval = setInterval(loadData, 5000);
-    return () => clearInterval(interval);
+    const unsubscribeVisits = subscribeToVisits((data) => {
+      setAllVisits(data);
+    });
+
+    return () => {
+      unsubscribePatrols();
+      unsubscribeVisits();
+    };
   }, []);
-
-  const loadData = () => {
-    setAllVisits(getVisits());
-    setAllPatrols(getPatrols());
-  };
 
   useEffect(() => {
     let v = allVisits;
@@ -217,16 +221,17 @@ export const GestorView: React.FC<GestorViewProps> = ({ user, onLogout }) => {
            <MapComponent 
              proprios={filteredProprios} 
              visits={filteredVisits}
-             routePath={filteredRoutes.length > 0 ? filteredRoutes[filteredRoutes.length - 1].pontos : []}
+             // Mostra a rota da viatura mais recente ativa no filtro, ou a primeira da lista
+             routePath={filteredRoutes.length > 0 ? filteredRoutes[0].pontos : []}
              zoom={12}
            />
            
            <div className="absolute top-4 right-4 bg-white/90 p-3 rounded shadow-lg text-xs z-[400] border border-slate-200">
              <p className="font-bold mb-1">Monitoramento em Tempo Real</p>
              <p>Viaturas Ativas (Total): {filteredRoutes.length}</p>
-             <p className="text-slate-500 italic mt-1">Atualizando a cada 5s...</p>
+             <p className="text-emerald-600 font-bold mt-1">● Online (Firebase)</p>
              <div className="mt-2 max-h-24 overflow-y-auto">
-                {filteredRoutes.slice(-3).map(r => (
+                {filteredRoutes.slice(0, 5).map(r => (
                   <div key={r.id} className="border-t pt-1 mt-1 text-[10px] text-slate-600">
                     VTR: {r.idViatura} - {r.regional}
                   </div>
