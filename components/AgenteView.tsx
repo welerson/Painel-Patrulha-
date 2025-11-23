@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MapComponent } from './MapComponent';
 import { MOCK_PROPRIOS, REGIONALS, VISITING_RADIUS_METERS, DEBOUNCE_MINUTES, getSimulationRoute } from '../constants';
 import { ActivePatrol, Proprio, RoutePoint, Visit, UserSession } from '../types';
-import { getDistanceFromLatLonInMeters } from '../utils/geo';
+import { getDistanceFromLatLonInMeters, getStartOfDay } from '../utils/geo';
 import { savePatrol, saveVisit, subscribeToVisits } from '../services/storage';
 
 interface AgenteViewProps {
@@ -238,6 +238,12 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
   };
 
+  // Calculate today's visits for this specific vehicle
+  const startOfToday = getStartOfDay();
+  const visitsTodayCount = nearbyVisits.filter(
+    v => v.idViatura === viaturaId && v.timestamp >= startOfToday
+  ).length;
+
   return (
     <div className="flex flex-col h-screen bg-slate-100 overflow-hidden">
       {/* Header */}
@@ -326,9 +332,9 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
         {patrolActive && (
            <div className="absolute bottom-6 left-4 right-4 md:left-auto md:right-4 md:w-64 bg-white/95 backdrop-blur p-4 rounded-xl shadow-2xl z-[400] border border-slate-200 flex flex-row md:flex-col justify-around md:gap-4 text-center">
              <div>
-               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Visitas Turno</p>
+               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Visitas Hoje (VTR)</p>
                <p className="font-bold text-2xl text-slate-800">
-                 {nearbyVisits.filter(v => v.idViatura === viaturaId && v.timestamp >= (activePatrolRef.current?.inicioTurno || 0)).length}
+                 {visitsTodayCount}
                </p>
              </div>
              <div className="w-px h-full bg-slate-200 md:w-full md:h-px"></div>

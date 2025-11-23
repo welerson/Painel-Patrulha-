@@ -24,3 +24,20 @@ export const formatTime = (timestamp: number): string => {
   // Added seconds to make distinct visits clearer
   return new Date(timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 };
+
+// --- Daily Logic Helpers ---
+
+// Retorna o timestamp das 00:00:00 do dia atual (local time)
+export const getStartOfDay = (): number => {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  return now.getTime();
+};
+
+// Retorna a diferença em dias entre um timestamp e agora
+export const getDaysSince = (timestamp: number): number => {
+  const now = Date.now();
+  const diff = now - timestamp;
+  const oneDayMs = 1000 * 60 * 60 * 24;
+  return Math.floor(diff / oneDayMs);
+};

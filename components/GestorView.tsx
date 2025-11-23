@@ -3,7 +3,7 @@ import { MapComponent } from './MapComponent';
 import { MOCK_PROPRIOS, REGIONALS } from '../constants';
 import { Visit, ActivePatrol, UserSession } from '../types';
 import { subscribeToPatrols, subscribeToVisits } from '../services/storage';
-import { formatDate, formatTime } from '../utils/geo';
+import { formatDate, formatTime, getStartOfDay } from '../utils/geo';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -95,11 +95,25 @@ export const GestorView: React.FC<GestorViewProps> = ({ user, onLogout }) => {
 
   }, [filterRegional, filterViatura, filterDate, allVisits, allPatrols]);
 
+  // Daily Logic Calculations
+  const startOfToday = getStartOfDay();
   const totalProprios = filteredProprios.length;
-  const visitedPropriosIds = new Set(filteredVisits.map(v => v.cod));
-  const visitedCount = visitedPropriosIds.size;
+  
+  // Count locations visited TODAY
+  const visitedTodayIds = new Set(
+    filteredVisits
+      .filter(v => {
+        // If a specific date filter is active, check against that date
+        // Otherwise, check against today's start (Reset at 00:00)
+        if (filterDate) return true; // Filter applied above
+        return v.timestamp >= startOfToday;
+      })
+      .map(v => v.cod)
+  );
+  
+  const visitedCount = visitedTodayIds.size;
   const unvisitedCount = totalProprios - visitedCount;
-  const totalPassagens = filteredVisits.length; 
+  const totalPassagens = filteredVisits.filter(v => filterDate ? true : v.timestamp >= startOfToday).length; 
 
   const generatePDF = () => {
     const doc = new jsPDF();
@@ -109,14 +123,17 @@ export const GestorView: React.FC<GestorViewProps> = ({ user, onLogout }) => {
     
     doc.setFontSize(10);
     doc.text(`Gerado em: ${new Date().toLocaleString()}`, 14, 30);
-    doc.text(`Filtros: Regional: ${filterRegional || 'Todas'}, Viatura: ${filterViatura || 'Todas'}, Data: ${filterDate || 'Todas'}`, 14, 35);
+    doc.text(`Filtros: Regional: ${filterRegional || 'Todas'}, Viatura: ${filterViatura || 'Todas'}, Data: ${filterDate || 'Hoje (00:00)'}`, 14, 35);
 
     doc.text(`Total de Próprios na área: ${totalProprios}`, 14, 45);
-    doc.text(`Locais Distintos Visitados: ${visitedCount} (${((visitedCount/totalProprios)*100 || 0).toFixed(1)}%)`, 14, 50);
-    doc.text(`Total de Passagens/Visitas: ${totalPassagens}`, 14, 55);
-    doc.text(`Não Visitados: ${unvisitedCount}`, 14, 60);
+    doc.text(`Locais Visitados Hoje/Período: ${visitedCount} (${((visitedCount/totalProprios)*100 || 0).toFixed(1)}%)`, 14, 50);
+    doc.text(`Total de Passagens: ${totalPassagens}`, 14, 55);
+    doc.text(`Pendentes: ${unvisitedCount}`, 14, 60);
 
-    const tableData = filteredVisits.map(v => [
+    // Filter visits for the table based on the same logic
+    const tableVisits = filteredVisits.filter(v => filterDate ? true : v.timestamp >= startOfToday);
+
+    const tableData = tableVisits.map(v => [
       formatDate(v.timestamp),
       formatTime(v.timestamp),
       v.idViatura,
@@ -134,8 +151,8 @@ export const GestorView: React.FC<GestorViewProps> = ({ user, onLogout }) => {
   };
 
   const chartData = [
-    { name: 'Visitados', value: visitedCount, fill: '#10b981' },
-    { name: 'Pendentes', value: unvisitedCount, fill: '#3b82f6' }
+    { name: 'Feito (Hoje)', value: visitedCount, fill: '#10b981' },
+    { name: 'Pendente', value: unvisitedCount, fill: '#3b82f6' }
   ];
 
   return (
@@ -199,23 +216,32 @@ export const GestorView: React.FC<GestorViewProps> = ({ user, onLogout }) => {
                 value={filterDate}
                 onChange={e => setFilterDate(e.target.value)}
               />
+              {!filterDate && <p className="text-[10px] text-slate-400 mt-1">Exibindo dados de HOJE (00:00+)</p>}
             </div>
           </div>
 
           <div className="mt-6 pt-6 border-t border-slate-200">
-             <h3 className="font-bold text-slate-700 mb-2">Estatísticas</h3>
+             <h3 className="font-bold text-slate-700 mb-2">Estatísticas (Dia)</h3>
+             
+             {/* Legend */}
+             <div className="flex gap-2 mb-4 text-[10px] justify-center">
+               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500"></span> Feito</span>
+               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-orange-500"></span> Pendente</span>
+               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500"></span> Crítico</span>
+             </div>
+
              <div className="grid grid-cols-2 gap-2 mb-2">
                 <div className="bg-emerald-50 p-2 rounded text-center border border-emerald-200">
-                  <p className="text-xs text-emerald-600">Locais Visitados</p>
+                  <p className="text-xs text-emerald-600">Visitados Hoje</p>
                   <p className="text-xl font-bold text-emerald-800">{visitedCount}</p>
                 </div>
                 <div className="bg-blue-50 p-2 rounded text-center border border-blue-200">
-                  <p className="text-xs text-blue-600">Locais Pendentes</p>
+                  <p className="text-xs text-blue-600">Pendentes</p>
                   <p className="text-xl font-bold text-blue-800">{unvisitedCount}</p>
                 </div>
              </div>
              <div className="bg-slate-100 p-2 rounded text-center border border-slate-200 mb-4">
-                  <p className="text-xs text-slate-600">Total de Passagens</p>
+                  <p className="text-xs text-slate-600">Passagens Totais Hoje</p>
                   <p className="text-2xl font-bold text-slate-800">{totalPassagens}</p>
              </div>
              
@@ -245,7 +271,7 @@ export const GestorView: React.FC<GestorViewProps> = ({ user, onLogout }) => {
         <main className="flex-grow relative h-96 md:h-auto">
            <MapComponent 
              proprios={filteredProprios} 
-             visits={filteredVisits}
+             visits={allVisits} // Pass all visits so map can calc history color (red/orange)
              // Mostra a rota da viatura mais recente ativa no filtro, ou a primeira da lista
              routePath={filteredRoutes.length > 0 ? filteredRoutes[0].pontos : []}
              zoom={12}
