@@ -14,9 +14,11 @@ export const savePatrol = async (patrol: ActivePatrol): Promise<void> => {
     // Use merge true to update existing patrol without overwriting everything if fields differ
     await setDoc(patrolRef, patrol, { merge: true });
   } catch (e: any) {
-    console.error("Erro ao salvar patrulha no Firebase:", e);
     if (e.code === 'permission-denied') {
-      console.error("PERMISSÃO NEGADA: Verifique as Regras de Segurança do Firestore (Ative o Modo Teste ou Autenticação Anônima).");
+        // Apenas aviso no console para não poluir, pois a UI do Gestor já avisa
+        console.warn("SavePatrol: Permissão negada (Verifique regras do Firestore).");
+    } else {
+        console.error("Erro ao salvar patrulha:", e);
     }
   }
 };
@@ -26,15 +28,20 @@ export const saveVisit = async (visit: Visit): Promise<void> => {
     const visitRef = doc(db, VISITS_COLLECTION, visit.id);
     await setDoc(visitRef, visit);
   } catch (e: any) {
-    console.error("Erro ao salvar visita no Firebase:", e);
+    if (e.code === 'permission-denied') {
+        console.warn("SaveVisit: Permissão negada (Verifique regras do Firestore).");
+    } else {
+        console.error("Erro ao salvar visita:", e);
+    }
   }
 };
 
 // --- Funções de Leitura em Tempo Real ---
 
-export const subscribeToPatrols = (callback: (patrols: ActivePatrol[]) => void) => {
-  // REMOVED orderBy('inicioTurno', 'desc') to prevent "Missing Index" errors on new Firestore instances.
-  // Sorting will be done client-side in the component.
+export const subscribeToPatrols = (
+  callback: (patrols: ActivePatrol[]) => void, 
+  onError?: (error: any) => void
+) => {
   const q = query(collection(db, PATROLS_COLLECTION));
   
   return onSnapshot(q, (snapshot) => {
@@ -42,18 +49,22 @@ export const subscribeToPatrols = (callback: (patrols: ActivePatrol[]) => void) 
     snapshot.forEach((doc) => {
       patrols.push(doc.data() as ActivePatrol);
     });
-    console.log(`Recebidas ${patrols.length} patrulhas do Firebase`);
+    // console.log(`Recebidas ${patrols.length} patrulhas do Firebase`);
     callback(patrols);
   }, (error) => {
-    console.error("Erro ao assinar patrulhas:", error);
     if (error.code === 'permission-denied') {
-      alert("Erro de permissão no Banco de Dados. O Gestor não conseguirá ver os dados. Verifique as regras do Firestore.");
+        console.warn("SubscribePatrols: Permissão negada.");
+    } else {
+        console.error("Erro ao assinar patrulhas:", error);
     }
+    if (onError) onError(error);
   });
 };
 
-export const subscribeToVisits = (callback: (visits: Visit[]) => void) => {
-  // REMOVED orderBy('timestamp', 'desc') to prevent "Missing Index" errors.
+export const subscribeToVisits = (
+  callback: (visits: Visit[]) => void,
+  onError?: (error: any) => void
+) => {
   const q = query(collection(db, VISITS_COLLECTION));
 
   return onSnapshot(q, (snapshot) => {
@@ -61,10 +72,15 @@ export const subscribeToVisits = (callback: (visits: Visit[]) => void) => {
     snapshot.forEach((doc) => {
       visits.push(doc.data() as Visit);
     });
-    console.log(`Recebidas ${visits.length} visitas do Firebase`);
+    // console.log(`Recebidas ${visits.length} visitas do Firebase`);
     callback(visits);
   }, (error) => {
-    console.error("Erro ao assinar visitas:", error);
+    if (error.code === 'permission-denied') {
+        console.warn("SubscribeVisits: Permissão negada.");
+    } else {
+        console.error("Erro ao assinar visitas:", error);
+    }
+    if (onError) onError(error);
   });
 };
 

@@ -28,16 +28,17 @@ const App: React.FC = () => {
       } else {
         console.log("Tentando conexão anônima...");
         signInAnonymously(auth).catch((error) => {
-          console.error("Erro na autenticação anônima:", error);
+          const errorCode = error.code;
           
           // FIX: Tratar erro quando Auth Anônima não está ativada no console
           // Permite prosseguir se o Firestore estiver em modo público (Teste)
-          if (error.code === 'auth/admin-restricted-operation' || error.code === 'auth/operation-not-allowed') {
-             console.warn("ALERTA: Autenticação Anônima desativada no console do Firebase.");
-             console.warn("Tentando conexão sem autenticação (Requer Firestore em Modo Teste/Público).");
+          if (errorCode === 'auth/admin-restricted-operation' || errorCode === 'auth/operation-not-allowed') {
+             console.warn("ALERTA: Autenticação Anônima não habilitada no console do Firebase.");
+             console.warn("Tentando conexão sem autenticação (O Firestore precisa estar com regras públicas 'allow read, write: if true').");
              setIsFirebaseConnected(true);
           } else {
-             setAuthError(`Erro de conexão (${error.code}): ${error.message}`);
+             console.error("Erro crítico na autenticação:", error);
+             setAuthError(`Erro de conexão (${errorCode}): ${error.message}`);
           }
         });
       }
@@ -67,8 +68,6 @@ const App: React.FC = () => {
   }
 
   if (authError) {
-     // Fallback UI if auth fails completely and blocking is needed, 
-     // though we try to bypass above.
      return (
       <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white p-4 text-center">
         <div className="bg-red-500/10 border border-red-500 p-6 rounded-lg max-w-md">

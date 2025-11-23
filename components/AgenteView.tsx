@@ -37,10 +37,14 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
 
   useEffect(() => {
     // Inscrever para receber visitas em tempo real
+    // Adicionado tratamento de erro para evitar crash caso permissões falhem
     const unsubscribe = subscribeToVisits((visits) => {
-      // Filtra apenas visitas desta sessão/viatura para o contador, ou mostra tudo?
-      // Geralmente queremos ver o histórico recente.
       setNearbyVisits(visits);
+    }, (error) => {
+       // Silenciar erro de permissão aqui pois a view do agente continua funcionando localmente
+       if (error.code !== 'permission-denied') {
+           console.error("Erro assinatura visitas (Agente):", error);
+       }
     });
     return () => unsubscribe();
   }, []);

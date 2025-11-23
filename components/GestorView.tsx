@@ -16,6 +16,7 @@ interface GestorViewProps {
 export const GestorView: React.FC<GestorViewProps> = ({ user, onLogout }) => {
   const [allVisits, setAllVisits] = useState<Visit[]>([]);
   const [allPatrols, setAllPatrols] = useState<ActivePatrol[]>([]);
+  const [permissionError, setPermissionError] = useState(false);
   
   const [filterRegional, setFilterRegional] = useState('');
   const [filterViatura, setFilterViatura] = useState('');
@@ -26,17 +27,34 @@ export const GestorView: React.FC<GestorViewProps> = ({ user, onLogout }) => {
   const [filteredRoutes, setFilteredRoutes] = useState<ActivePatrol[]>([]);
 
   useEffect(() => {
-    const unsubscribePatrols = subscribeToPatrols((data) => {
-      // Sort client-side (Newest first)
-      const sorted = data.sort((a, b) => b.inicioTurno - a.inicioTurno);
-      setAllPatrols(sorted);
-    });
+    // Reset error state on mount
+    setPermissionError(false);
 
-    const unsubscribeVisits = subscribeToVisits((data) => {
-      // Sort client-side (Newest first)
-      const sorted = data.sort((a, b) => b.timestamp - a.timestamp);
-      setAllVisits(sorted);
-    });
+    const unsubscribePatrols = subscribeToPatrols(
+      (data) => {
+        // Sort client-side (Newest first)
+        const sorted = data.sort((a, b) => b.inicioTurno - a.inicioTurno);
+        setAllPatrols(sorted);
+        setPermissionError(false); // Success clears error
+      },
+      (error) => {
+        if (error.code === 'permission-denied') {
+          setPermissionError(true);
+        }
+      }
+    );
+
+    const unsubscribeVisits = subscribeToVisits(
+      (data) => {
+        // Sort client-side (Newest first)
+        const sorted = data.sort((a, b) => b.timestamp - a.timestamp);
+        setAllVisits(sorted);
+      },
+      (error) => {
+         // Usually if one fails, both fail, handled by patrols sub
+         console.error("Visit sub error", error);
+      }
+    );
 
     return () => {
       unsubscribePatrols();
@@ -131,6 +149,18 @@ export const GestorView: React.FC<GestorViewProps> = ({ user, onLogout }) => {
         </div>
       </header>
 
+      {/* Permission Error Banner */}
+      {permissionError && (
+        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 relative z-50">
+          <p className="font-bold">Acesso Bloqueado pelo Firebase</p>
+          <p className="text-sm">Para corrigir, acesse o <strong>Firebase Console &gt; Firestore Database &gt; Rules</strong> e altere para:</p>
+          <pre className="bg-red-50 p-2 mt-1 rounded text-xs font-mono border border-red-200">
+            allow read, write: if true;
+          </pre>
+          <p className="text-xs mt-1">(Ou ative a "Autenticação Anônima" no menu Authentication &gt; Sign-in method)</p>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row flex-grow overflow-hidden">
         
         {/* Sidebar / Filters */}
@@ -224,14 +254,18 @@ export const GestorView: React.FC<GestorViewProps> = ({ user, onLogout }) => {
            <div className="absolute top-4 right-4 bg-white/90 p-3 rounded shadow-lg text-xs z-[400] border border-slate-200">
              <p className="font-bold mb-1">Monitoramento em Tempo Real</p>
              <p>Viaturas Ativas (Total): {filteredRoutes.length}</p>
-             <p className="text-emerald-600 font-bold mt-1">● Online (Firebase)</p>
-             <div className="mt-2 max-h-24 overflow-y-auto">
-                {filteredRoutes.slice(0, 5).map(r => (
-                  <div key={r.id} className="border-t pt-1 mt-1 text-[10px] text-slate-600">
-                    VTR: {r.idViatura} - {r.regional}
-                  </div>
-                ))}
-             </div>
+             <p className={`font-bold mt-1 ${permissionError ? 'text-red-600' : 'text-emerald-600'}`}>
+               ● {permissionError ? 'Erro de Permissão' : 'Online (Firebase)'}
+             </p>
+             {!permissionError && (
+               <div className="mt-2 max-h-24 overflow-y-auto">
+                  {filteredRoutes.slice(0, 5).map(r => (
+                    <div key={r.id} className="border-t pt-1 mt-1 text-[10px] text-slate-600">
+                      VTR: {r.idViatura} - {r.regional}
+                    </div>
+                  ))}
+               </div>
+             )}
            </div>
         </main>
 
