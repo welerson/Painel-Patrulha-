@@ -25,6 +25,10 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
   const watchIdRef = useRef<number | null>(null);
   const simulationIntervalRef = useRef<any>(null);
   const activePatrolRef = useRef<ActivePatrol | null>(null);
+  
+  // Local Debounce Map: Stores timestamp of last visit per proprio ID locally
+  // This ensures we don't depend on async DB updates for the logic
+  const lastVisitTimeRef = useRef<Record<string, number>>({});
 
   // Initialize filtered list of public buildings
   const [filteredProprios, setFilteredProprios] = useState<Proprio[]>([]);
@@ -32,6 +36,8 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
   useEffect(() => {
     // Inscrever para receber visitas em tempo real (para mostrar histórico no mapa)
     const unsubscribe = subscribeToVisits((visits) => {
+      // We merge with local optimistic updates if needed, but Firestore usually is fast enough.
+      // However, for the counter, rely on this source of truth + optimistic additions
       setNearbyVisits(visits);
     });
     return () => unsubscribe();
@@ -67,6 +73,7 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
 
     activePatrolRef.current = newPatrol;
     patrolPathRef.current = [];
+    lastVisitTimeRef.current = {}; // Reset debounce on new patrol
     setPatrolPath([]);
     setPatrolActive(true);
     setIsSimulating(simulate);
@@ -112,7 +119,7 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
 
     let routeIndex = 0;
     let progress = 0;
-    const steps = 50; // steps between points for smoothness
+    const steps = 60; // Increased steps for smoother/slower check to ensure hit
     
     // Start at first point
     updatePosition(route[0].lat, route[0].lng);
@@ -136,7 +143,7 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
         progress = 0;
         routeIndex++;
       }
-    }, 100); // Update every 100ms for faster simulation
+    }, 100); 
   };
 
   const updatePosition = (lat: number, lng: number) => {
@@ -192,35 +199,38 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
   };
 
   const registerVisit = (proprio: Proprio, timestamp: number) => {
-    // Debounce check using the visits currently in state (synced from Firebase)
-    const recentVisits = nearbyVisits.filter(
-      v => v.proprioId === proprio.cod && 
-           v.idViatura === viaturaId && 
-           (timestamp - v.timestamp) < (DEBOUNCE_MINUTES * 60 * 1000)
-    );
+    // 1. Local Debounce Check (Robust)
+    const lastVisit = lastVisitTimeRef.current[proprio.cod] || 0;
+    const debounceMs = DEBOUNCE_MINUTES * 60 * 1000;
 
-    if (recentVisits.length === 0) {
-      const newVisit: Visit = {
-        id: `${proprio.cod}-${timestamp}`,
-        proprioId: proprio.cod,
-        cod: proprio.cod,
-        nome_equipamento: proprio.nome_equipamento,
-        lat: proprio.lat,
-        lng: proprio.lng,
-        timestamp,
-        idViatura: viaturaId,
-        agente: user.name || 'Desconhecido',
-        regional: selectedRegional
-      };
-
-      // Save directly to Firebase
-      saveVisit(newVisit);
-      
-      // Local state update happens via subscription, but we can optimistically update for immediate feedback if needed
-      // but waiting for subscription ensures consistency across devices
-      
-      if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+    if (timestamp - lastVisit < debounceMs) {
+      // Too soon, ignore
+      return;
     }
+
+    // 2. Register new visit time locally immediately
+    lastVisitTimeRef.current[proprio.cod] = timestamp;
+
+    const newVisit: Visit = {
+      id: `${proprio.cod}-${timestamp}`,
+      proprioId: proprio.cod,
+      cod: proprio.cod,
+      nome_equipamento: proprio.nome_equipamento,
+      lat: proprio.lat,
+      lng: proprio.lng,
+      timestamp,
+      idViatura: viaturaId,
+      agente: user.name || 'Desconhecido',
+      regional: selectedRegional
+    };
+
+    // 3. Optimistic Update for UI (Instant feedback)
+    setNearbyVisits(prev => [newVisit, ...prev]);
+
+    // 4. Save to Firebase
+    saveVisit(newVisit);
+      
+    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
   };
 
   return (
@@ -313,7 +323,7 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
              <div>
                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Visitas Turno</p>
                <p className="font-bold text-2xl text-slate-800">
-                 {nearbyVisits.filter(v => v.idViatura === viaturaId && v.timestamp > (activePatrolRef.current?.inicioTurno || 0)).length}
+                 {nearbyVisits.filter(v => v.idViatura === viaturaId && v.timestamp >= (activePatrolRef.current?.inicioTurno || 0)).length}
                </p>
              </div>
              <div className="w-px h-full bg-slate-200 md:w-full md:h-px"></div>
