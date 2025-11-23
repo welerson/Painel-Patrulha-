@@ -26,18 +26,20 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
   const simulationIntervalRef = useRef<any>(null);
   const activePatrolRef = useRef<ActivePatrol | null>(null);
   
+  // Throttling ref to prevent flooding Firebase with route updates
+  const lastSaveTimeRef = useRef<number>(0);
+  
   // Local Debounce Map: Stores timestamp of last visit per proprio ID locally
-  // This ensures we don't depend on async DB updates for the logic
   const lastVisitTimeRef = useRef<Record<string, number>>({});
 
   // Initialize filtered list of public buildings
   const [filteredProprios, setFilteredProprios] = useState<Proprio[]>([]);
 
   useEffect(() => {
-    // Inscrever para receber visitas em tempo real (para mostrar histórico no mapa)
+    // Inscrever para receber visitas em tempo real
     const unsubscribe = subscribeToVisits((visits) => {
-      // We merge with local optimistic updates if needed, but Firestore usually is fast enough.
-      // However, for the counter, rely on this source of truth + optimistic additions
+      // Filtra apenas visitas desta sessão/viatura para o contador, ou mostra tudo?
+      // Geralmente queremos ver o histórico recente.
       setNearbyVisits(visits);
     });
     return () => unsubscribe();
@@ -63,7 +65,7 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
     }
 
     const newPatrol: ActivePatrol = {
-      id: Date.now().toString(), // ID único baseado em timestamp
+      id: Date.now().toString(),
       idViatura: viaturaId,
       agente: user.name || 'Agente',
       regional: selectedRegional,
@@ -73,12 +75,14 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
 
     activePatrolRef.current = newPatrol;
     patrolPathRef.current = [];
-    lastVisitTimeRef.current = {}; // Reset debounce on new patrol
+    lastVisitTimeRef.current = {}; 
+    lastSaveTimeRef.current = 0;
+    
     setPatrolPath([]);
     setPatrolActive(true);
     setIsSimulating(simulate);
 
-    // Salvar estado inicial da patrulha no Firebase
+    // Salvar estado inicial
     savePatrol(newPatrol);
 
     if (simulate) {
@@ -108,7 +112,6 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
   };
 
   const startSimulation = () => {
-    // Get dynamic route based on selected regional
     const route = getSimulationRoute(selectedRegional);
     
     if (route.length === 0) {
@@ -119,9 +122,8 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
 
     let routeIndex = 0;
     let progress = 0;
-    const steps = 60; // Increased steps for smoother/slower check to ensure hit
+    const steps = 60; 
     
-    // Start at first point
     updatePosition(route[0].lat, route[0].lng);
 
     simulationIntervalRef.current = setInterval(() => {
@@ -132,7 +134,6 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
       const p1 = route[routeIndex];
       const p2 = route[routeIndex + 1];
 
-      // Simple interpolation
       const lat = p1.lat + (p2.lat - p1.lat) * (progress / steps);
       const lng = p1.lng + (p2.lng - p1.lng) * (progress / steps);
 
@@ -150,21 +151,20 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
     const timestamp = Date.now();
     const point: RoutePoint = { lat, lng, timestamp };
 
-    // Update State
+    // Update UI State immediately for smooth animation
     setCurrentPos(point);
-    
-    // Add to path
     patrolPathRef.current = [...patrolPathRef.current, point];
     setPatrolPath(patrolPathRef.current);
 
-    // Update active patrol object and save to storage (Firebase)
-    if (activePatrolRef.current) {
+    // THROTTLING: Save to Firebase only every 2 seconds to avoid saturation
+    // The visual map updates every 100ms (simulation) or 1s (GPS), but DB writes follow this limit.
+    if (activePatrolRef.current && (timestamp - lastSaveTimeRef.current > 2000)) {
       activePatrolRef.current.pontos = patrolPathRef.current;
-      // Fire and forget save to maintain performance
       savePatrol(activePatrolRef.current);
+      lastSaveTimeRef.current = timestamp;
     }
 
-    // Check Proximity
+    // Check Proximity happens on every tick to ensure we don't miss a spot
     checkProximity(lat, lng, timestamp);
   };
 
@@ -175,10 +175,14 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
     if (simulationIntervalRef.current) {
       clearInterval(simulationIntervalRef.current);
     }
+    
+    // Force final save when stopping to ensure complete data
     if (activePatrolRef.current) {
       activePatrolRef.current.fimTurno = Date.now();
+      activePatrolRef.current.pontos = patrolPathRef.current; // Ensure all points are saved
       savePatrol(activePatrolRef.current);
     }
+    
     setPatrolActive(false);
     setIsSimulating(false);
     activePatrolRef.current = null;
@@ -199,16 +203,13 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
   };
 
   const registerVisit = (proprio: Proprio, timestamp: number) => {
-    // 1. Local Debounce Check (Robust)
     const lastVisit = lastVisitTimeRef.current[proprio.cod] || 0;
     const debounceMs = DEBOUNCE_MINUTES * 60 * 1000;
 
     if (timestamp - lastVisit < debounceMs) {
-      // Too soon, ignore
       return;
     }
 
-    // 2. Register new visit time locally immediately
     lastVisitTimeRef.current[proprio.cod] = timestamp;
 
     const newVisit: Visit = {
@@ -224,10 +225,10 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
       regional: selectedRegional
     };
 
-    // 3. Optimistic Update for UI (Instant feedback)
+    // Optimistic Update: Show immediately on screen
     setNearbyVisits(prev => [newVisit, ...prev]);
 
-    // 4. Save to Firebase
+    // Save to Firebase
     saveVisit(newVisit);
       
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);

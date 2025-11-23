@@ -6,7 +6,7 @@ import { subscribeToPatrols, subscribeToVisits } from '../services/storage';
 import { formatDate, formatTime } from '../utils/geo';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface GestorViewProps {
   user: UserSession;
@@ -14,30 +14,28 @@ interface GestorViewProps {
 }
 
 export const GestorView: React.FC<GestorViewProps> = ({ user, onLogout }) => {
-  // Data state
   const [allVisits, setAllVisits] = useState<Visit[]>([]);
   const [allPatrols, setAllPatrols] = useState<ActivePatrol[]>([]);
   
-  // Filters
   const [filterRegional, setFilterRegional] = useState('');
   const [filterViatura, setFilterViatura] = useState('');
   const [filterDate, setFilterDate] = useState('');
 
-  // Derived state
   const [filteredVisits, setFilteredVisits] = useState<Visit[]>([]);
   const [filteredProprios, setFilteredProprios] = useState(MOCK_PROPRIOS);
   const [filteredRoutes, setFilteredRoutes] = useState<ActivePatrol[]>([]);
 
   useEffect(() => {
-    // Inscrever nos listeners do Firebase para atualização em tempo real
-    // Isso garante que assim que uma viatura move ou visita algo, o gestor vê.
-    
     const unsubscribePatrols = subscribeToPatrols((data) => {
-      setAllPatrols(data);
+      // Sort client-side (Newest first)
+      const sorted = data.sort((a, b) => b.inicioTurno - a.inicioTurno);
+      setAllPatrols(sorted);
     });
 
     const unsubscribeVisits = subscribeToVisits((data) => {
-      setAllVisits(data);
+      // Sort client-side (Newest first)
+      const sorted = data.sort((a, b) => b.timestamp - a.timestamp);
+      setAllVisits(sorted);
     });
 
     return () => {
@@ -63,7 +61,6 @@ export const GestorView: React.FC<GestorViewProps> = ({ user, onLogout }) => {
     }
 
     if (filterDate) {
-      // Simple day check
       v = v.filter(visit => {
         const visitDate = new Date(visit.timestamp);
         return visitDate.toISOString().split('T')[0] === filterDate;
@@ -80,12 +77,11 @@ export const GestorView: React.FC<GestorViewProps> = ({ user, onLogout }) => {
 
   }, [filterRegional, filterViatura, filterDate, allVisits, allPatrols]);
 
-  // Statistics
   const totalProprios = filteredProprios.length;
   const visitedPropriosIds = new Set(filteredVisits.map(v => v.cod));
   const visitedCount = visitedPropriosIds.size;
   const unvisitedCount = totalProprios - visitedCount;
-  const totalPassagens = filteredVisits.length; // Total raw visits
+  const totalPassagens = filteredVisits.length; 
 
   const generatePDF = () => {
     const doc = new jsPDF();
@@ -119,7 +115,6 @@ export const GestorView: React.FC<GestorViewProps> = ({ user, onLogout }) => {
     doc.save("relatorio_patrulha.pdf");
   };
 
-  // Chart Data
   const chartData = [
     { name: 'Visitados', value: visitedCount, fill: '#10b981' },
     { name: 'Pendentes', value: unvisitedCount, fill: '#3b82f6' }

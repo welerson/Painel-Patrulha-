@@ -1,17 +1,17 @@
 import { db } from '../firebaseConfig';
-import { collection, doc, setDoc, onSnapshot, query, orderBy, Timestamp } from 'firebase/firestore';
+import { collection, doc, setDoc, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { ActivePatrol, Visit } from '../types';
 
 // Coleções no Firestore
 const PATROLS_COLLECTION = 'patrols';
 const VISITS_COLLECTION = 'visits';
 
-// --- Funções de Escrita (Usadas pelo Agente) ---
+// --- Funções de Escrita ---
 
 export const savePatrol = async (patrol: ActivePatrol): Promise<void> => {
   try {
-    // Salva ou atualiza o documento da patrulha usando o ID como chave
     const patrolRef = doc(db, PATROLS_COLLECTION, patrol.id);
+    // Use merge true to update existing patrol without overwriting everything if fields differ
     await setDoc(patrolRef, patrol, { merge: true });
   } catch (e) {
     console.error("Erro ao salvar patrulha no Firebase:", e);
@@ -27,48 +27,42 @@ export const saveVisit = async (visit: Visit): Promise<void> => {
   }
 };
 
-// --- Funções de Leitura em Tempo Real (Usadas pelo Gestor/Agente) ---
+// --- Funções de Leitura em Tempo Real ---
 
-// Inscreve-se para receber atualizações de TODAS as patrulhas
 export const subscribeToPatrols = (callback: (patrols: ActivePatrol[]) => void) => {
-  const q = query(collection(db, PATROLS_COLLECTION), orderBy('inicioTurno', 'desc'));
+  // REMOVED orderBy('inicioTurno', 'desc') to prevent "Missing Index" errors on new Firestore instances.
+  // Sorting will be done client-side in the component.
+  const q = query(collection(db, PATROLS_COLLECTION));
   
   return onSnapshot(q, (snapshot) => {
     const patrols: ActivePatrol[] = [];
     snapshot.forEach((doc) => {
       patrols.push(doc.data() as ActivePatrol);
     });
+    console.log(`Recebidas ${patrols.length} patrulhas do Firebase`);
     callback(patrols);
+  }, (error) => {
+    console.error("Erro ao assinar patrulhas:", error);
   });
 };
 
-// Inscreve-se para receber atualizações de TODAS as visitas
 export const subscribeToVisits = (callback: (visits: Visit[]) => void) => {
-  const q = query(collection(db, VISITS_COLLECTION), orderBy('timestamp', 'desc'));
+  // REMOVED orderBy('timestamp', 'desc') to prevent "Missing Index" errors.
+  const q = query(collection(db, VISITS_COLLECTION));
 
   return onSnapshot(q, (snapshot) => {
     const visits: Visit[] = [];
     snapshot.forEach((doc) => {
       visits.push(doc.data() as Visit);
     });
+    console.log(`Recebidas ${visits.length} visitas do Firebase`);
     callback(visits);
+  }, (error) => {
+    console.error("Erro ao assinar visitas:", error);
   });
 };
 
-// --- Métodos Legados/Sincronos (Mantidos para compatibilidade com inicialização, mas agora retornam vazio se não inscritos) ---
-// O GestorView e AgenteView devem usar os subscribers acima.
-
-export const getPatrols = (): ActivePatrol[] => {
-  // Em uma arquitetura puramente Firebase, não usamos leitura síncrona do localStorage.
-  // Retornamos vazio para evitar erros, mas o componente deve usar o hook de subscrição.
-  return [];
-};
-
-export const getVisits = (): Visit[] => {
-  return [];
-};
-
-export const clearData = () => {
-  // Limpeza local, se necessário. No Firebase, precisaria de uma cloud function ou lógica admin.
-  console.log("Limpeza de dados locais solicitada.");
-}
+// --- Métodos Legados (Compatibilidade) ---
+export const getPatrols = (): ActivePatrol[] => [];
+export const getVisits = (): Visit[] => [];
+export const clearData = () => console.log("Limpeza local solicitada.");
