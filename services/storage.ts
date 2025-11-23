@@ -1,5 +1,5 @@
 import { db } from '../firebaseConfig';
-import { collection, doc, setDoc, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, doc, setDoc, onSnapshot, query } from 'firebase/firestore';
 import { ActivePatrol, Visit } from '../types';
 
 // Coleções no Firestore
@@ -13,8 +13,11 @@ export const savePatrol = async (patrol: ActivePatrol): Promise<void> => {
     const patrolRef = doc(db, PATROLS_COLLECTION, patrol.id);
     // Use merge true to update existing patrol without overwriting everything if fields differ
     await setDoc(patrolRef, patrol, { merge: true });
-  } catch (e) {
+  } catch (e: any) {
     console.error("Erro ao salvar patrulha no Firebase:", e);
+    if (e.code === 'permission-denied') {
+      console.error("PERMISSÃO NEGADA: Verifique as Regras de Segurança do Firestore (Ative o Modo Teste ou Autenticação Anônima).");
+    }
   }
 };
 
@@ -22,7 +25,7 @@ export const saveVisit = async (visit: Visit): Promise<void> => {
   try {
     const visitRef = doc(db, VISITS_COLLECTION, visit.id);
     await setDoc(visitRef, visit);
-  } catch (e) {
+  } catch (e: any) {
     console.error("Erro ao salvar visita no Firebase:", e);
   }
 };
@@ -43,6 +46,9 @@ export const subscribeToPatrols = (callback: (patrols: ActivePatrol[]) => void) 
     callback(patrols);
   }, (error) => {
     console.error("Erro ao assinar patrulhas:", error);
+    if (error.code === 'permission-denied') {
+      alert("Erro de permissão no Banco de Dados. O Gestor não conseguirá ver os dados. Verifique as regras do Firestore.");
+    }
   });
 };
 

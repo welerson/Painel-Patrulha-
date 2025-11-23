@@ -6,8 +6,7 @@
     <title>Patrulha de Próprios PBH</title>
     <meta name="description" content="App da Guarda Civil Municipal de BH" />
     
-    <!-- Mantendo Tailwind via CDN para simplicidade na importação, 
-         mas em produção real recomenda-se instalar via PostCSS -->
+    <!-- Tailwind via CDN (opcional: manter ou remover se configurar PostCSS) -->
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Leaflet CSS -->
@@ -35,17 +34,17 @@
   <script type="importmap">
 {
   "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
     "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
-    "vite": "https://aistudiocdn.com/vite@^7.2.4",
+    "firebase/": "https://aistudiocdn.com/firebase@^12.6.0/",
     "react-leaflet": "https://aistudiocdn.com/react-leaflet@^5.0.0",
-    "jspdf": "https://aistudiocdn.com/jspdf@^3.0.4",
     "leaflet": "https://aistudiocdn.com/leaflet@^1.9.4",
+    "jspdf": "https://aistudiocdn.com/jspdf@^3.0.4",
     "jspdf-autotable": "https://aistudiocdn.com/jspdf-autotable@^5.0.2",
     "recharts": "https://aistudiocdn.com/recharts@^3.5.0",
-    "firebase/": "https://aistudiocdn.com/firebase@^12.6.0/"
+    "vite": "https://aistudiocdn.com/vite@^7.2.4",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1"
   }
 }
 </script>
