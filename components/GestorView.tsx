@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { MapComponent } from './MapComponent';
-import { MOCK_PROPRIOS, REGIONALS, mapRawToProprio } from '../constants';
+import { MOCK_PROPRIOS, REGIONALS } from '../constants';
 import { Visit, ActivePatrol, UserSession, Proprio } from '../types';
 import { subscribeToPatrols, subscribeToVisits } from '../services/storage';
-import { formatDate, formatTime, getProprioStatus } from '../utils/geo';
+import { formatDate, formatTime, getProprioStatus, isQualitativeTarget } from '../utils/geo';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { BarChart, Bar, XAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -89,7 +89,7 @@ export const GestorView: React.FC<GestorViewProps> = ({ user, onLogout }) => {
   // Stats
   const totalProprios = filteredProprios.length;
   let statusGreen = 0;
-  let statusBlue = 0; // Was Orange
+  let statusBlue = 0; 
   let statusRed = 0;
 
   filteredProprios.forEach(prop => {
@@ -124,25 +124,47 @@ export const GestorView: React.FC<GestorViewProps> = ({ user, onLogout }) => {
     doc.text(`Planejamento/Atenção (Azul): ${statusBlue}`, 14, 55);
     doc.text(`Crítico/Atrasado (Vermelho): ${statusRed}`, 14, 60);
 
-    const tableData = filteredVisits.map(v => [
-      formatDate(v.timestamp),
-      formatTime(v.timestamp),
-      v.idViatura,
-      v.agente,
-      (v.nome_equipamento || '').substring(0, 20),
-      formatDuration(v.durationSeconds),
-      ''
-    ]);
+    const tableData = filteredVisits.map(v => {
+      const isQualitative = isQualitativeTarget(v.nome_equipamento || '');
+      let photoStatus = '-';
+      
+      if (v.photo) {
+        photoStatus = ''; // Deixa vazio para a imagem entrar via didDrawCell
+      } else if (isQualitative) {
+        photoStatus = 'PENDENTE'; // Texto que será pintado de vermelho
+      }
+
+      return [
+        formatDate(v.timestamp),
+        formatTime(v.timestamp),
+        v.idViatura,
+        v.agente,
+        (v.nome_equipamento || '').substring(0, 20),
+        formatDuration(v.durationSeconds),
+        photoStatus
+      ];
+    });
 
     autoTable(doc, {
       startY: 70,
       head: [['Data', 'Hora', 'Viatura', 'Agente', 'Local', 'Duração', 'Foto']],
       body: tableData,
+      // Lógica para pintar texto de vermelho no PDF
+      didParseCell: (data) => {
+        if (data.section === 'body' && data.column.index === 6) {
+          if (data.cell.raw === 'PENDENTE') {
+            data.cell.styles.textColor = [220, 38, 38]; // Vermelho RGB
+            data.cell.styles.fontStyle = 'bold';
+          }
+        }
+      },
+      // Lógica para desenhar a imagem
       didDrawCell: (data) => {
         if (data.section === 'body' && data.column.index === 6) {
           const visit = filteredVisits[data.row.index];
           if (visit && visit.photo) { 
             try {
+              // Desenha a imagem na célula
               doc.addImage(visit.photo, 'JPEG', data.cell.x + 2, data.cell.y + 2, 10, 10);
             } catch (e) {}
           }
@@ -185,7 +207,6 @@ export const GestorView: React.FC<GestorViewProps> = ({ user, onLogout }) => {
           <h2 className="font-bold text-slate-800 mb-4">Filtros e Relatórios</h2>
           
           <div className="space-y-3">
-            {/* Filters Inputs ... */}
             <select className="w-full border p-2 rounded text-sm" value={filterRegional} onChange={e => setFilterRegional(e.target.value)}>
               <option value="">Regional: Todas</option>
               {REGIONALS.map(r => <option key={r} value={r}>{r}</option>)}
@@ -265,29 +286,51 @@ export const GestorView: React.FC<GestorViewProps> = ({ user, onLogout }) => {
                    </tr>
                  </thead>
                  <tbody className="divide-y divide-slate-100">
-                   {filteredVisits.map((visit) => (
-                       <tr key={visit.id} className="hover:bg-slate-50">
-                         <td className="p-3 text-slate-500 font-mono whitespace-nowrap">
-                           <div className="text-slate-800 font-bold">{formatDate(visit.timestamp)}</div>
-                           <div className="text-xs">{formatTime(visit.timestamp)}</div>
-                         </td>
-                         <td className="p-3">
-                           <div className="font-medium text-slate-800">{visit.agente}</div>
-                           <div className="text-xs text-slate-500 bg-slate-200 inline-block px-1 rounded mt-1">{visit.idViatura}</div>
-                         </td>
-                         <td className="p-3 text-sm">{visit.nome_equipamento}</td>
-                         <td className="p-3 text-center text-slate-600 font-mono text-xs">
-                           {formatDuration(visit.durationSeconds)}
-                         </td>
-                         <td className="p-3 text-center">
-                           {visit.photo ? (
-                             <button onClick={() => setPreviewPhoto(visit.photo!)}>
-                               <img src={visit.photo} className="w-8 h-8 rounded object-cover border hover:scale-150 transition" />
-                             </button>
-                           ) : '-'}
-                         </td>
-                       </tr>
-                   ))}
+                   {filteredVisits.map((visit) => {
+                       const isQualitative = isQualitativeTarget(visit.nome_equipamento || '');
+                       
+                       return (
+                         <tr key={visit.id} className="hover:bg-slate-50">
+                           <td className="p-3 text-slate-500 font-mono whitespace-nowrap">
+                             <div className="text-slate-800 font-bold">{formatDate(visit.timestamp)}</div>
+                             <div className="text-xs">{formatTime(visit.timestamp)}</div>
+                           </td>
+                           <td className="p-3">
+                             <div className="font-medium text-slate-800">{visit.agente}</div>
+                             <div className="text-xs text-slate-500 bg-slate-200 inline-block px-1 rounded mt-1">{visit.idViatura}</div>
+                           </td>
+                           <td className="p-3 text-sm">{visit.nome_equipamento}</td>
+                           <td className="p-3 text-center text-slate-600 font-mono text-xs">
+                             {formatDuration(visit.durationSeconds)}
+                           </td>
+                           <td className="p-3 text-center align-middle">
+                             {visit.photo ? (
+                               <div className="flex justify-center">
+                                 <button 
+                                    onClick={() => setPreviewPhoto(visit.photo!)} 
+                                    className="relative group"
+                                    title="Ver Foto"
+                                  >
+                                   <img 
+                                      src={visit.photo} 
+                                      className="w-10 h-10 rounded object-cover border-2 border-emerald-500 shadow-sm group-hover:scale-110 transition" 
+                                   />
+                                   <div className="absolute -top-1 -right-1 bg-emerald-500 text-white rounded-full p-0.5 shadow-sm">
+                                     <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7"></path></svg>
+                                   </div>
+                                 </button>
+                               </div>
+                             ) : isQualitative ? (
+                               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 border border-red-200">
+                                 PENDENTE
+                               </span>
+                             ) : (
+                               <span className="text-slate-300 font-mono">-</span>
+                             )}
+                           </td>
+                         </tr>
+                       );
+                   })}
                  </tbody>
                </table>
              </div>
@@ -297,7 +340,7 @@ export const GestorView: React.FC<GestorViewProps> = ({ user, onLogout }) => {
 
       {previewPhoto && (
         <div className="fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center p-4" onClick={() => setPreviewPhoto(null)}>
-          <img src={previewPhoto} className="max-w-full max-h-full rounded shadow-2xl" />
+          <img src={previewPhoto} className="max-w-full max-h-full rounded shadow-2xl border-4 border-white" />
         </div>
       )}
     </div>
