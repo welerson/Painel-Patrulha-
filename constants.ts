@@ -1,6 +1,9 @@
 
 import { Proprio, RoutePoint } from './types';
 
+// Version control to force update
+export const DB_VERSION = "1.2-OESTE-FIX";
+
 // Helper to generate random coordinates around a center point to simulate geocoding
 const generateCoord = (centerLat: number, centerLng: number, spread: number = 0.025) => {
   return {
@@ -11,7 +14,7 @@ const generateCoord = (centerLat: number, centerLng: number, spread: number = 0.
 
 // Helper to determine priority based on name/type
 const determinePriority = (nome: string): 'ALTA' | 'PADRAO' => {
-  if (!nome) return 'PADRAO'; // Guard clause against undefined
+  if (!nome) return 'PADRAO'; 
   const n = nome.toUpperCase();
   // Escolas, Saúde, UPA, CERSAM exigem visita diária (ALTA)
   if (
@@ -24,12 +27,11 @@ const determinePriority = (nome: string): 'ALTA' | 'PADRAO' => {
   ) {
     return 'ALTA';
   }
-  // Praças, Parques, Admin podem entrar na rotação (PADRAO)
   return 'PADRAO';
 };
 
 // Regional Centers in BH
-const REGIONAL_CENTERS: Record<string, { lat: number, lng: number }> = {
+export const REGIONAL_CENTERS: Record<string, { lat: number, lng: number }> = {
   "BARREIRO": { lat: -19.977, lng: -44.014 },
   "CENTRO-SUL": { lat: -19.935, lng: -43.937 },
   "LESTE": { lat: -19.915, lng: -43.915 },
@@ -41,29 +43,34 @@ const REGIONAL_CENTERS: Record<string, { lat: number, lng: number }> = {
   "VENDA NOVA": { lat: -19.816, lng: -43.983 }
 };
 
-// Neighborhood Centers for Better Mock Geocoding (Fallbacks for regions without real GPS)
+// Neighborhood Centers (Normalized keys to Uppercase for matching)
 const NEIGHBORHOOD_CENTERS: Record<string, { lat: number, lng: number }> = {
-  "Mantiqueira": { lat: -19.795, lng: -43.985 },
-  "Céu Azul": { lat: -19.820, lng: -44.000 },
-  "Serra Verde": { lat: -19.795, lng: -43.955 },
-  "Rio Branco": { lat: -19.815, lng: -43.975 },
-  "Jardim Leblon": { lat: -19.830, lng: -43.990 },
-  "São João Batista": { lat: -19.820, lng: -43.960 },
-  "Piratininga": { lat: -19.810, lng: -43.990 },
-  "Letícia": { lat: -19.805, lng: -43.975 },
-  "Europa": { lat: -19.800, lng: -43.965 },
-  "Lagoa": { lat: -19.810, lng: -44.000 },
-  "Venda Nova": { lat: -19.815, lng: -43.955 },
-  "Jaqueline": { lat: -19.820, lng: -43.935 },
-  "Juliana": { lat: -19.825, lng: -43.930 },
-  "São Bernardo": { lat: -19.835, lng: -43.940 },
-  "Tirol": { lat: -19.990, lng: -44.035 },
-  "Cardoso": { lat: -19.999, lng: -44.006 },
-  "Lindéia": { lat: -19.980, lng: -44.050 },
-  "Milionários": { lat: -19.980, lng: -44.000 },
-  "Diamante": { lat: -19.990, lng: -44.020 },
-  "Santa Tereza": { lat: -19.915, lng: -43.915 },
-  "Centro": { lat: -19.919, lng: -43.938 }
+  "MANTIQUEIRA": { lat: -19.795, lng: -43.985 },
+  "CEU AZUL": { lat: -19.820, lng: -44.000 },
+  "SERRA VERDE": { lat: -19.795, lng: -43.955 },
+  "RIO BRANCO": { lat: -19.815, lng: -43.975 },
+  "JARDIM LEBLON": { lat: -19.830, lng: -43.990 },
+  "SAO JOAO BATISTA": { lat: -19.820, lng: -43.960 },
+  "PIRATININGA": { lat: -19.810, lng: -43.990 },
+  "LETICIA": { lat: -19.805, lng: -43.975 },
+  "EUROPA": { lat: -19.800, lng: -43.965 },
+  "LAGOA": { lat: -19.810, lng: -44.000 },
+  "VENDA NOVA": { lat: -19.815, lng: -43.955 },
+  "JAQUELINE": { lat: -19.820, lng: -43.935 },
+  "JULIANA": { lat: -19.825, lng: -43.930 },
+  "SAO BERNARDO": { lat: -19.835, lng: -43.940 },
+  "TIROL": { lat: -19.990, lng: -44.035 },
+  "CARDOSO": { lat: -19.999, lng: -44.006 },
+  "LINDEIA": { lat: -19.980, lng: -44.050 },
+  "MILIONARIOS": { lat: -19.980, lng: -44.000 },
+  "DIAMANTE": { lat: -19.990, lng: -44.020 },
+  "SANTA TEREZA": { lat: -19.915, lng: -43.915 },
+  "CENTRO": { lat: -19.919, lng: -43.938 },
+  "ESTORIL": { lat: -19.965, lng: -43.970 },
+  "BURITIS": { lat: -19.970, lng: -43.965 },
+  "SALGADO FILHO": { lat: -19.945, lng: -43.980 },
+  "NOVA CINTRA": { lat: -19.950, lng: -43.990 },
+  "BETANIA": { lat: -19.962, lng: -43.990 }
 };
 
 // DADOS COMPLETOS
@@ -112,7 +119,7 @@ const RAW_DATA: any[] = [
   { cod: "1072", reg: "BARREIRO", tipo: "EMEI", nome: "EMEI MANGUEIRAS", end: "RUA COROA DE FRADE", num: "328", bairro: "MANGUEIRAS", lat: -20.0124515, lng: -44.0370576 },
   { cod: "1073", reg: "BARREIRO", tipo: "EMEI", nome: "EMEI MIRAMAR", end: "RUA TRES MARIAS", num: "151", bairro: "MIRAMAR", lat: -19.99477, lng: -44.0122204 },
   { cod: "1075", reg: "BARREIRO", tipo: "EMEI", nome: "EMEI DIAMANTE", end: "RUA AZARIAS DUARTE", num: "180", bairro: "DIAMANTE", lat: -19.9968183, lng: -44.0193742 },
-  { cod: "1077", reg: "BARREIRO", tipo: "EMEI", nome: "EMEI PETROPOLIS", end: "RUA FREDERICO BOY PRUSSIANO", num: "455", bairro: "PETROPOLIS", lat: -20.0127804, lng: -44.0275568 },
+  { cod: "1077", reg: "BARREIRO", tipo: "EMEI PETROPOLIS", end: "RUA FREDERICO BOY PRUSSIANO", num: "455", bairro: "PETROPOLIS", lat: -20.0127804, lng: -44.0275568 },
   { cod: "1078", reg: "BARREIRO", tipo: "EMEI SOLAR URUCUIA", end: "RUA NELSON DE PAULA PIRES", num: "411", bairro: "PONGELUPE", lat: -20.0099657, lng: -44.0093866 },
   { cod: "1079", reg: "BARREIRO", tipo: "EMEI BAIRRO DAS INDUSTRIAS", end: "RUA IRMA MARIA PAULA", num: "254", bairro: "BAIRRO DAS INDUSTRIAS I", lat: -19.9658415, lng: -44.0005786 },
   { cod: "1080", reg: "BARREIRO", tipo: "EMEI", nome: "EMEI BARREIRO", end: "RUA SAO PAULO DA CRUZ", num: "65", bairro: "BARREIRO", lat: -19.9806637, lng: -44.0111104 },
@@ -519,13 +526,153 @@ const RAW_DATA: any[] = [
   { cod: "G922", reg: "VENDA NOVA", tipo: "SUOPE", nome: "SUOPE VENDA NOVA", end: "AV VILARINHO", num: "1300", bairro: "VENDA NOVA", lat: -19.815, lng: -43.954 },
   { cod: "G971", reg: "VENDA NOVA", tipo: "INTENDENCIA", nome: "INTENDENCIA ESTAÇÃO VILARINHO", end: "AV VILARINHO", num: "36", bairro: "VILA CLORIS", lat: -19.82, lng: -43.947 },
 
+  // --- OESTE (GPS REAL) ---
+  { cod: "7001", reg: "OESTE", tipo: "EMEI", nome: "EMEI PROFESSOR CHRISTOVAM COLOMBO DOS SANTOS", end: "RUA VEREADOR NELSON CUNHA", num: "137", bairro: "ESTORIL", lat: -19.9564403, lng: -43.9700616 },
+  { cod: "7002", reg: "OESTE", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL DEPUTADO MILTON SALLES", end: "RUA TEOFILO FILHO", num: "222", bairro: "JARDIM AMERICA", lat: -19.9551655, lng: -43.969338 },
+  { cod: "7003", reg: "OESTE", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL DE ENSINO ESPECIAL FREI LEOPOLDO", end: "RUA CLOVIS CYRILO LIMONGE", num: "141", bairro: "SALGADO FILHO", lat: -19.9506352, lng: -43.9789882 },
+  { cod: "7004", reg: "OESTE", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL FRANCISCA DE PAULA", end: "RUA JULIO DE CASTILHO", num: "330", bairro: "CINQUENTENARIO", lat: -19.9577339, lng: -43.9832012 },
+  { cod: "7005", reg: "OESTE", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL HUGO WERNECK", end: "RUA OSCAR TROMPOWSKY", num: "1372", bairro: "GRAJAU", lat: -19.9427362, lng: -43.9632279 },
+  { cod: "7006", reg: "OESTE", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL JOAO DO PATROCINIO", end: "RUA SERINGUEIRA", num: "128", bairro: "NOVA GAMELEIRA", lat: -19.9445645, lng: -43.9933738 },
+  { cod: "7007", reg: "OESTE", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL MAGALHAES DRUMOND", end: "RUA CONTENDAS", num: "200", bairro: "ALTO BARROCA", lat: -19.9312467, lng: -43.9712564 },
+  { cod: "7008", reg: "OESTE", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL MESTRE ATAIDE", end: "RUA AUGUSTO JOSE DOS SANTOS", num: "560", bairro: "ESTRELA DO ORIENTE", lat: -19.9679645, lng: -43.9887921 },
+  { cod: "7009", reg: "OESTE", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL OSWALDO CRUZ", end: "RUA SANTOS", num: "2200", bairro: "JARDIM AMERICA", lat: -19.9545323, lng: -43.9695849 },
+  { cod: "7010", reg: "OESTE", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL PADRE HENRIQUE BRANDAO", end: "RUA CRISPIM JAQUES", num: "987", bairro: "VISTA ALEGRE", lat: -19.9562633, lng: -44.0004657 },
+  { cod: "7011", reg: "OESTE", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL PREFEITO AMINTHAS DE BARROS", end: "RUA SAN SALVADOR", num: "100", bairro: "HAVAI", lat: -19.9633212, lng: -43.9695771 },
+  { cod: "7012", reg: "OESTE", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL PROFESSORA EFIGENIA VIDIGAL", end: "RUA JOSE GUALBERTO", num: "295", bairro: "PALMEIRAS", lat: -19.9699749, lng: -43.9826317 },
+  { cod: "7013", reg: "OESTE", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL SALGADO FILHO", end: "RUA CLOVIS CYRILO LIMONGE", num: "151", bairro: "SALGADO FILHO", lat: -19.95045, lng: -43.9786219 },
+  { cod: "7014", reg: "OESTE", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL TENENTE MANOEL MAGALHAES PENIDO", end: "RUA AMUR", num: "60", bairro: "BETANIA", lat: -19.9625955, lng: -43.9970031 },
+  { cod: "7015", reg: "OESTE", tipo: "EMEI", nome: "EMEI MARIA SALES FERREIRA", end: "RUA DAS CANOAS", num: "150", bairro: "BETANIA", lat: -19.9597136, lng: -43.9932043 },
+  { cod: "7017", reg: "OESTE", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL PROFESSOR MARIO WERNECK", end: "RUA ABATI", num: "38", bairro: "SANTA MARIA", lat: -19.9362716, lng: -44.0134116 },
+  { cod: "7060", reg: "OESTE", tipo: "EMEI", nome: "EMEI PALMEIRAS", end: "RUA MANUEL ALVES", num: "100", bairro: "PALMEIRAS", lat: -19.9721604, lng: -43.9807752 },
+  { cod: "7061", reg: "OESTE", tipo: "EMEI", nome: "EMEI GAMELEIRA", end: "AVE AMAZONAS", num: "5855", bairro: "GAMELEIRA", lat: -19.9317091, lng: -43.9856658 },
+  { cod: "7062", reg: "OESTE", tipo: "EMEI", nome: "EMEI CAC HAVAI", end: "AVE COSTA DO MARFIM", num: "480", bairro: "HAVAI", lat: -19.9634816, lng: -43.9708185 },
+  { cod: "7063", reg: "OESTE", tipo: "EMEI", nome: "EMEI GRAJAU", end: "RUA SANTA INES", num: "75", bairro: "SAO JORGE II", lat: -19.94264, lng: -43.9619448 },
+  { cod: "7064", reg: "OESTE", tipo: "EMEI", nome: "EMEI SILVA LOBO", end: "AVE SILVA LOBO", num: "2250", bairro: "NOVA GRANADA", lat: -19.9430005, lng: -43.9644302 },
+  { cod: "7065", reg: "OESTE", tipo: "EMEI", nome: "EMEI SANTA MARIA", end: "RUA JOAO BATISTA VIEIRA", num: "720", bairro: "SANTA MARIA", lat: -19.9337851, lng: -44.0176185 },
+  { cod: "7066", reg: "OESTE", tipo: "EMEI", nome: "EMEI VILA LEONINA", end: "RUA DEZENOVE DE DEZEMBRO", num: "331", bairro: "ALPES", lat: -19.9539128, lng: -43.9643798 },
+  { cod: "7067", reg: "OESTE", tipo: "EMEI", nome: "EMEI CINQUENTENARIO", end: "AVE DOM JOAO VI", num: "691", bairro: "CINQUENTENARIO", lat: -19.9611395, lng: -43.982225 },
+  { cod: "7068", reg: "OESTE", tipo: "EMEI", nome: "EMEI CAMARGOS", end: "RUA GENTIL PORTUGAL DO BRASIL", num: "61", bairro: "CAMARGOS", lat: -19.934205, lng: -44.021181 },
+  { cod: "7069", reg: "OESTE", tipo: "EMEI", nome: "EMEI VILA CALAFATE", end: "RUA CONTENDAS", num: "254", bairro: "ALTO BARROCA", lat: -19.9316823, lng: -43.9711744 },
+  { cod: "7100", reg: "OESTE", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE AMILCAR VIANA MARTINS", end: "RUA NELSON DE SENNA", num: "90", bairro: "CINQUENTENARIO", lat: -19.957651, lng: -43.9843226 },
+  { cod: "7101", reg: "OESTE", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE BETANIA", end: "RUA DAS CANOAS", num: "678", bairro: "ESTRELA DO ORIENTE", lat: -19.9620479, lng: -43.9886455 },
+  { cod: "7102", reg: "OESTE", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE CABANA", end: "RUA CENTRO SOCIAL", num: "536", bairro: "NOVA GAMELEIRA", lat: -19.9433335, lng: -43.9966795 },
+  { cod: "7103", reg: "OESTE", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE CICERO IDELFONSO", end: "RUA CAVIANA", num: "77", bairro: "JARDINOPOLIS", lat: -19.954822, lng: -43.9978798 },
+  { cod: "7104", reg: "OESTE", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE CONJUNTO BETANIA", end: "RUA ONA", num: "105", bairro: "BETANIA", lat: -19.9643817, lng: -43.9956514 },
+  { cod: "7105", reg: "OESTE", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE HAVAI", end: "RUA PAULO DINIZ CARNEIRO", num: "742", bairro: "HAVAI", lat: -19.9664695, lng: -43.9726859 },
+  { cod: "7106", reg: "OESTE", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE NORALDINO DE LIMA", end: "AVE AMAZONAS", num: "4373", bairro: "NOVA SUISSA", lat: -19.9304507, lng: -43.9729258 },
+  { cod: "7107", reg: "OESTE", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE SALGADO FILHO", end: "RUA CAMPINA VERDE", num: "375", bairro: "SALGADO FILHO", lat: -19.944023, lng: -43.9849883 },
+  { cod: "7108", reg: "OESTE", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE SAO JORGE", end: "RUA OSCAR TROMPOWSKY", num: "1698", bairro: "NOVA GRANADA", lat: -19.9449288, lng: -43.9649057 },
+  { cod: "7109", reg: "OESTE", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE WALDOMIRO LOBO", end: "AVE AMAZONAS", num: "8889", bairro: "MADRE GERTRUDES", lat: -19.9456623, lng: -44.0051199 },
+  { cod: "7110", reg: "OESTE", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE VENTOSA", end: "RUA CONSELHEIRO JOAQUIM CAETANO", num: "1782", bairro: "JARDIM AMERICA", lat: -19.9507329, lng: -43.9722289 },
+  { cod: "7111", reg: "OESTE", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE VILA IMPERIAL", end: "RUA GUILHERME PINTO DA FONSECA", num: "350", bairro: "MADRE GERTRUDES", lat: -19.9491, lng: -44.0047335 },
+  { cod: "7112", reg: "OESTE", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE VILA LEONINA", end: "PCA DO ENSINO", num: "240", bairro: "ALPES", lat: -19.9559319, lng: -43.9651484 },
+  { cod: "7113", reg: "OESTE", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE VISTA ALEGRE", end: "RUA SENECA", num: "9", bairro: "NOVA CINTRA", lat: -19.9494464, lng: -43.9916482 },
+  { cod: "7114", reg: "OESTE", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE PALMEIRAS", end: "AVE DOM JOAO VI", num: "1821", bairro: "PALMEIRAS", lat: -19.9721518, lng: -43.9781608 },
+  { cod: "7115", reg: "OESTE", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE JOAO XXIII", end: "RUA TOLEDO", num: "481", bairro: "OESTE", lat: -19.9375066, lng: -44.0057557 },
+  { cod: "7116", reg: "OESTE", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE SANTA MARIA", end: "RUA DAS PEROLAS", num: "123", bairro: "SANTA MARIA", lat: -19.9333373, lng: -44.016996 },
+  { cod: "7117", reg: "OESTE", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE CAMARGOS", end: "RUA LUIZA EFIGENIA SILVA", num: "413", bairro: "CAMARGOS", lat: -19.9399732, lng: -44.0181588 },
+  { cod: "7150", reg: "OESTE", tipo: "UPA", nome: "UNIDADE DE PRONTO ATENDIMENTO OESTE", end: "AVE BARAO HOMEM DE MELO", num: "1710", bairro: "JARDIM AMERICA", lat: -19.9510987, lng: -43.9681199 },
+  { cod: "7151", reg: "OESTE", tipo: "URS", nome: "UNIDADE DE REFERENCIA SECUNDARIA CAMPOS SALES", end: "RUA CAMPOS SALES", num: "472", bairro: "CALAFATE", lat: -19.9273382, lng: -43.9775956 },
+  { cod: "7201", reg: "OESTE", tipo: "FARMACIA", nome: "FARMACIA DE MANIPULACAO", end: "RUA DO GARIMPO", num: "325", bairro: "OESTE", lat: -19.9350406, lng: -44.0060931 },
+  { cod: "7202", reg: "OESTE", tipo: "CENTRO CULTURAL", nome: "CENTRO CULTURAL SALGADO FILHO", end: "RUA NOVA PONTE", num: "22", bairro: "SALGADO FILHO", lat: -19.9449821, lng: -43.9854148 },
+  { cod: "7204", reg: "OESTE", tipo: "CENTRAL DE ESTERILIZAÇAO", nome: "CENTRAL DE ESTERILIZAÇAO OESTE", end: "RUA CAMPOS SALES", num: "472", bairro: "CALAFATE", lat: -19.9273382, lng: -43.9775956 },
+  { cod: "7207", reg: "OESTE", tipo: "CC", nome: "CENTRO DE CONVIVENCIA OESTE", end: "RUA GENERAL ANDRADE NEVES", num: "25", bairro: "GUTIERREZ", lat: -19.9307363, lng: -43.9613104 },
+  { cod: "7210", reg: "OESTE", tipo: "CERSAM", nome: "CENTRO DE REFERENCIA EM SAUDE MENTAL OESTE", end: "RUA OSCAR TROMPOWSKY", num: "1325", bairro: "SAO JORGE II", lat: -19.9423424, lng: -43.962754 },
+  { cod: "7211", reg: "OESTE", tipo: "CEVAE", nome: "CEVAE MORRO DAS PEDRAS", end: "RUA BELFORT ROXO", num: "215", bairro: "NOVA GRANADA", lat: -19.9443379, lng: -43.9653316 },
+  { cod: "7213", reg: "OESTE", tipo: "ABRIGO", nome: "ABRIGO REVIVER", end: "AVE AMAZONAS", num: "5801", bairro: "GAMELEIRA", lat: -19.9316221, lng: -43.9851064 },
+  { cod: "7214", reg: "OESTE", tipo: "CONSELHO TUTELAR", nome: "CONSELHO TUTELAR OESTE", end: "AVE BARAO HOMEM DE MELO", num: "382", bairro: "NOVA SUISSA", lat: -19.9372086, lng: -43.9726716 },
+  { cod: "7217", reg: "OESTE", tipo: "BHTRANS", nome: "EMPRESA DE TRANSPORTE E TRANSITO DE BELO HORIZONTE", end: "AVE ENGENHEIRO CARLOS GOULART", num: "900", bairro: "BURITIS", lat: -19.9706043, lng: -43.9610204 },
+  { cod: "7219", reg: "OESTE", tipo: "ESTACIONAMENTO", nome: "ESTACIONAMENTO", end: "RUA CACUI", num: "75", bairro: "NOVA SUISSA", lat: -19.9363041, lng: -43.9726144 },
+  { cod: "7220", reg: "OESTE", tipo: "FARMACIA", nome: "FARMACIA REGIONAL OESTE", end: "RUA CAMPOS SALES", num: "472", bairro: "CALAFATE", lat: -19.9273382, lng: -43.9775956 },
+  { cod: "7225", reg: "OESTE", tipo: "GERENCIA", nome: "GERENCIA ARRECADACAO REGIONAL OESTE", end: "AVE BARAO HOMEM DE MELO", num: "282", bairro: "NOVA SUISSA", lat: -19.9367279, lng: -43.9726188 },
+  { cod: "7229", reg: "OESTE", tipo: "GERENCIA", nome: "GERENCIA DE PARQUES BARREIRO E OESTE", end: "RUA AUGUSTO JOSE DOS SANTOS", num: "366", bairro: "ESTRELA DO ORIENTE", lat: -19.9657928, lng: -43.9899633 },
+  { cod: "7230", reg: "OESTE", tipo: "CARE", nome: "COORDENADORIA DE ATENDIMENTO REGIONAL OESTE", end: "AVE SILVA LOBO", num: "1280", bairro: "NOVA GRANADA", lat: -19.9357076, lng: -43.9710909 },
+  { cod: "7232", reg: "OESTE", tipo: "HOSPITAL VETERINARIO", nome: "HOSPITAL PUBLICO VETERINARIO DE BELO HORIZONTE", end: "RUA PEDRO BIZZOTO", num: "79", bairro: "MADRE GERTRUDES", lat: -19.9493772, lng: -44.0068592 },
+  { cod: "7236", reg: "OESTE", tipo: "DIRE", nome: "DIRETORIA REGIONAL DE EDUCAÇAO OESTE", end: "AVE SILVA LOBO", num: "1280", bairro: "NOVA GRANADA", lat: -19.9357076, lng: -43.9710909 },
+  { cod: "7247", reg: "OESTE", tipo: "GERENCIA", nome: "GERENCIA REGIONAL DE LIMPEZA URBANA OESTE", end: "RUA CONSELHEIRO PIRES DA MOTA", num: "151", bairro: "SALGADO FILHO", lat: -19.9448765, lng: -43.9813811 },
+  { cod: "7248", reg: "OESTE", tipo: "GERMA", nome: "GERENCIA REGIONAL DE MANUTENCAO OESTE", end: "RUA AUGUSTO JOSE DOS SANTOS", num: "36", bairro: "ESTRELA DO ORIENTE", lat: -19.9645234, lng: -43.9904766 },
+  { cod: "7261", reg: "OESTE", tipo: "CEMAR", nome: "CENTRO MUNICIPAL DE AGROECOLOGIA E ED. AMBIENTAL PARA RESIDUOS ORGANICOS", end: "RUA NILO ANTONIO GAZIRE", num: "147", bairro: "ESTORIL", lat: -19.9619636, lng: -43.9662241 },
+  { cod: "7262", reg: "OESTE", tipo: "GERENCIA", nome: "GERENCIA DE VIGILANCIA SANITARIA OESTE", end: "AVE SILVA LOBO", num: "1280", bairro: "NOVA GRANADA", lat: -19.9357076, lng: -43.9710909 },
+  { cod: "7264", reg: "OESTE", tipo: "GERENCIA", nome: "GERENCIA DE ASSISTENCIA EPIDEMIOLOGIA E REGULAÇAO OESTE", end: "AVE SILVA LOBO", num: "1280", bairro: "NOVA GRANADA", lat: -19.9357076, lng: -43.9710909 },
+  { cod: "7267", reg: "OESTE", tipo: "DRES", nome: "DIRETORIA REGIONAL DE SAUDE OESTE", end: "AVE SILVA LOBO", num: "1280", bairro: "NOVA GRANADA", lat: -19.9357076, lng: -43.9710909 },
+  { cod: "7269", reg: "OESTE", tipo: "GERENCIA ZOONOSES", nome: "GERENCIA DE ZOONOSES OESTE", end: "AVE SILVA LOBO", num: "1280", bairro: "NOVA GRANADA", lat: -19.9357076, lng: -43.9710909 },
+  { cod: "7270", reg: "OESTE", tipo: "LABORATORIO", nome: "LABORATORIO REGIONAL OESTE-BARREIRO", end: "AVE AMAZONAS", num: "8889", bairro: "MADRE GERTRUDES", lat: -19.9456623, lng: -44.0051199 },
+  { cod: "7271", reg: "OESTE", tipo: "CRAS", nome: "CENTRO DE REFERENCIA DE ASSISTENCIA  SOCIAL HAVAI-VENTOSA", end: "AVE COSTA DO MARFIM", num: "480", bairro: "HAVAI", lat: -19.9634816, lng: -43.9708185 },
+  { cod: "7272", reg: "OESTE", tipo: "CRAS", nome: "CENTRO DE REFERENCIA DE ASSISTENCIA  SOCIAL MORRO DAS PEDRAS - GRACA SABOIA", end: "AVE SILVA LOBO", num: "2379", bairro: "GRAJAU", lat: -19.9427871, lng: -43.9635552 },
+  { cod: "7278", reg: "OESTE", tipo: "CENTRAL DE ESTERILIZAÇAO/ZOONOSES", nome: "CENTRAL DE ESTERILIZAÇAO DE CAES E GATOS OESTE", end: "RUA ALEXANDRE SIQUEIRA", num: "375", bairro: "SALGADO FILHO", lat: -19.948458, lng: -43.9799806 },
+  { cod: "7281", reg: "OESTE", tipo: "PRAÇA", nome: "PRAÇA DE ESPORTES SALGADO FILHO", end: "AVE TERESA CRISTINA", num: "5214", bairro: "SALGADO FILHO", lat: -19.9446377, lng: -43.9864772 },
+  { cod: "7282", reg: "OESTE", tipo: "PRAÇA", nome: "PRAÇA DA SAUDE", end: "AVE SILVA LOBO", num: "1571", bairro: "GRAJAU", lat: -19.9375946, lng: -43.9688877 },
+  { cod: "7283", reg: "OESTE", tipo: "PRAÇA", nome: "PRAÇA CARDEAL ARCO VERDE", end: "PCA CARDEAL ARCO VERDE", num: "44", bairro: "NOVA CINTRA", lat: -19.94938, lng: -43.990371 },
+  { cod: "7284", reg: "OESTE", tipo: "PRAÇA", nome: "PRAÇA DO ENSINO", end: "PCA DO ENSINO", num: "230", bairro: "ALPES", lat: -19.9561958, lng: -43.9654414 },
+  { cod: "7285", reg: "OESTE", tipo: "GERAT", nome: "GERENCIA REGIONAL DE ATENDIMENTO AO CIDADAO OESTE", end: "AVE SILVA LOBO", num: "1280", bairro: "NOVA GRANADA", lat: -19.9357076, lng: -43.9710909 },
+  { cod: "7288", reg: "OESTE", tipo: "CRAS", nome: "CENTRO DE REFERENCIA DE ASSISTENCIA SOCIAL VILA ANTENA", end: "RUA CENTRAL", num: "78", bairro: "VILA ANTENA", lat: -19.9489842, lng: -43.9627542 },
+  { cod: "7289", reg: "OESTE", tipo: "CIAME", nome: "CENTRO INTEGRADO DE ATENDIMENTO AO MENOR SANTA MARIA", end: "RUA CENTRAL", num: "78", bairro: "VILA ANTENA", lat: -19.9490315, lng: -43.9626032 },
+  { cod: "7290", reg: "OESTE", tipo: "ACADEMIA DA CIDADE", nome: "ACADEMIA DA CIDADE VILA LEONINA", end: "PCA DO ENSINO", num: "240", bairro: "ALPES", lat: -19.9559318, lng: -43.9651484 },
+  { cod: "7291", reg: "OESTE", tipo: "ACADEMIA DA CIDADE", nome: "ACADEMIA DA CIDADE HAVAI", end: "AVE COSTA DO MARFIM", num: "480", bairro: "HAVAI", lat: -19.9634816, lng: -43.9708185 },
+  { cod: "7292", reg: "OESTE", tipo: "ACADEMIA DA CIDADE", nome: "ACADEMIA DA CIDADE AMILCAR VIANA", end: "RUA NELSON DE SENNA", num: "120", bairro: "CINQUENTENARIO", lat: -19.9578244, lng: -43.9845164 },
+  { cod: "7293", reg: "OESTE", tipo: "ACADEMIA DA CIDADE", nome: "ACADEMIA DA CIDADE VILA VENTOSA", end: "RUA DONA NICOLINA LIMA", num: "316", bairro: "HAVAI", lat: -19.9526013, lng: -43.974857 },
+  { cod: "7294", reg: "OESTE", tipo: "ACADEMIA DA CIDADE", nome: "ACADEMIA DA CIDADE UNI-BH", end: "AVE PROFESSOR MARIO WERNECK", num: "1685", bairro: "BURITIS", lat: -19.9707309, lng: -43.9647757 },
+  { cod: "7299", reg: "OESTE", tipo: "URPV", nome: "URPV BARAO", end: "RUA CACUI", num: "121", bairro: "NOVA SUISSA", lat: -19.9368762, lng: -43.9726592 },
+  { cod: "7300", reg: "OESTE", tipo: "URPV", nome: "URPV TERESA CRISTINA", end: "AVE TERESA CRISTINA", num: "8451", bairro: "BAIRRO DAS INDUSTRIAS II", lat: -19.9571783, lng: -44.0016735 },
+  { cod: "7301", reg: "OESTE", tipo: "URPV", nome: "URPV SILVA LOBO", end: "AVE TERESA CRISTINA", num: "2195", bairro: "CALAFATE", lat: -19.9231171, lng: -43.9739992 },
+  { cod: "7302", reg: "OESTE", tipo: "URPV", nome: "URPV DAS FLORES", end: "RUA JOSE FURLETTI", num: "45", bairro: "BETANIA", lat: -19.9492039, lng: -43.9848713 },
+  { cod: "7307", reg: "OESTE", tipo: "GCMBH", nome: "GUARDA CIVIL MUNICIPAL DE BELO HORIZONTE - SEDE REGIONAL OESTE", end: "RUA AUGUSTO JOSE DOS SANTOS", num: "36", bairro: "ESTRELA DO ORIENTE", lat: -19.9645234, lng: -43.9904766 },
+  { cod: "7308", reg: "OESTE", tipo: "GERENCIA", nome: "GERENCIA DE LOGISTICA APOIO A REDE E ALMOXARIFADO", end: "RUA DO GARIMPO", num: "325", bairro: "OESTE", lat: -19.9350406, lng: -44.0060931 },
+  { cod: "7309", reg: "OESTE", tipo: "PRAÇA", nome: "PRAÇA LEONARDO GUTIERREZ", end: "PCA LEONARDO GUTIERREZ", num: "100", bairro: "GUTIERREZ", lat: -19.9359462, lng: -43.9596794 },
+  { cod: "7310", reg: "OESTE", tipo: "PRAÇA", nome: "PRAÇA CARLOS VILLANI", end: "RUA PEDRA BONITA", num: "343", bairro: "PRADO", lat: -19.9248881, lng: -43.9666344 },
+  { cod: "7311", reg: "OESTE", tipo: "PRAÇA", nome: "PRAÇA DA AMIZADE", end: "RUA MARIO JOSE FRANCISCO", num: "46", bairro: "BETANIA", lat: -19.9622261, lng: -43.9923639 },
+  { cod: "7313", reg: "OESTE", tipo: "CRAS", nome: "CENTRO DE REFERENCIA DE ASSISTENCIA  SOCIAL VISTA ALEGRE", end: "RUA AGUANIL", num: "425", bairro: "VISTA ALEGRE", lat: -19.9538754, lng: -43.9963856 },
+  { cod: "7314", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO AREA DA RUA CARLOS SCHETINO", end: "RUA CENTRO SOCIAL", num: "535", bairro: "JARDINOPOLIS", lat: -19.9431498, lng: -43.9969349 },
+  { cod: "7315", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO DA RUA SAO JOSE", end: "RUA CENTRAL", num: "33", bairro: "VILA ANTENA", lat: -19.9494152, lng: -43.9618261 },
+  { cod: "7316", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO CEFET", end: "RUA JOSE DE ALENCAR", num: "720", bairro: "NOVA SUISSA", lat: -19.9304705, lng: -43.9793057 },
+  { cod: "7317", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO CONJUNTO HABITACIONAL HENRIQUE SILVA ARAUJO", end: "RUA VEREADOR JULIO FERREIRA", num: "111", bairro: "NOVA GAMELEIRA", lat: -19.93792, lng: -43.9899954 },
+  { cod: "7318", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO DA AVENIDA PROTASIO DE OLIVEIRA PENNA", end: "AVE PROTASIO DE OLIVEIRA PENNA", num: "11", bairro: "BURITIS", lat: -19.9769014, lng: -43.9654682 },
+  { cod: "7319", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO DA AVENIDA RAUL MOURAO GUIMARAES", end: "RUA DEPUTADO SEBASTIAO NASCIMENTO", num: "395", bairro: "BURITIS", lat: -19.966852, lng: -43.9737126 },
+  { cod: "7320", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO DA AVENIDA SILVA LOBO", end: "AVE SILVA LOBO", num: "1575", bairro: "GRAJAU", lat: -19.9375941, lng: -43.9688614 },
+  { cod: "7321", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO DA RUA CESAR LEAO", end: "RUA POLONIA", num: "20", bairro: "SAO JORGE II", lat: -19.9416783, lng: -43.9599217 },
+  { cod: "7322", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO DA RUA INDEPENDENCIA", end: "RUA JOSE MARTINS SOBRINHO", num: "653", bairro: "CABANA DO PAI TOMAS", lat: -19.9462371, lng: -44.0001302 },
+  { cod: "7323", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PADRE JOSE LUIZ", end: "RUA IBIRACI", num: "198", bairro: "SALGADO FILHO", lat: -19.9465816, lng: -43.9842575 },
+  { cod: "7324", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PARQUE II", end: "RUA ONZE DE SETEMBRO", num: "203", bairro: "LEONINA", lat: -19.9537058, lng: -43.9622917 },
+  { cod: "7325", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PARQUE IV", end: "BEC PIATA", num: "75", bairro: "VILA ANTENA", lat: -19.9501118, lng: -43.9624143 },
+  { cod: "7326", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PARQUE AGGEO PIO SOBRINHO", end: "AVE PROFESSOR MARIO WERNECK", num: "2691", bairro: "BURITIS", lat: -19.9763751, lng: -43.9712557 },
+  { cod: "7328", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PARQUE DO CONJUNTO ESTRELA DALVA", end: "AVE COSTA DO MARFIM", num: "400", bairro: "HAVAI", lat: -19.9630851, lng: -43.970224 },
+  { cod: "7329", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PARQUE ECOLOGICO PEDRO MACHADO", end: "RUA GILKA MACHADO", num: "150", bairro: "SANTA MARIA", lat: -19.9380661, lng: -44.011296 },
+  { cod: "7330", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PARQUE HALLEY ALVES BESSA", end: "PCA MARCIO DE ALMEIDA MENIN", num: "40", bairro: "HAVAI", lat: -19.9649133, lng: -43.9661731 },
+  { cod: "7331", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PARQUE JACQUES COUSTEAU", end: "RUA AUGUSTO JOSE DOS SANTOS", num: "366", bairro: "ESTRELA DO ORIENTE", lat: -19.9654047, lng: -43.9899078 },
+  { cod: "7332", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PARQUE VILA PANTANAL", end: "RUA GERALDO VASCONCELLOS", num: "1003", bairro: "ESTORIL", lat: -19.9569687, lng: -43.9614323 },
+  { cod: "7333", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PRAÇA APA", end: "PCA APA", num: "14", bairro: "JARDIM AMERICA", lat: -19.944683, lng: -43.9731755 },
+  { cod: "7335", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PRAÇA CHAFARIZ", end: "BEC REGINA", num: "20", bairro: "VENTOSA", lat: -19.950313, lng: -43.9745548 },
+  { cod: "7336", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PRAÇA CINQUENTENARIO", end: "PCA CINQUENTENARIO", num: "115", bairro: "CINQUENTENARIO", lat: -19.9542824, lng: -43.9841448 },
+  { cod: "7337", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PRAÇA DA AMIZADE", end: "RUA MECA", num: "8", bairro: "BETANIA", lat: -19.9622709, lng: -43.992501 },
+  { cod: "7338", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PRAÇA DO GUARATA", end: "RUA GONERI", num: "70", bairro: "GUARATA", lat: -19.933776, lng: -43.9830884 },
+  { cod: "7339", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PRAÇA DA RUA DESEMBARGADOR ALONSO STARLING", end: "RUA DESEMBARGADOR ALONSO STARLING", num: "120", bairro: "CAMARGOS", lat: -19.9429205, lng: -44.0161227 },
+  { cod: "7341", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PRAÇA DE ESPORTES SALGADO FILHO", end: "AVE TERESA CRISTINA", num: "5214", bairro: "SALGADO FILHO", lat: -19.9446377, lng: -43.9864772 },
+  { cod: "7342", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PRAÇA DO ENSINO", end: "RUA THEOFILO VIEIRA", num: "8", bairro: "ALPES", lat: -19.9561292, lng: -43.9657159 },
+  { cod: "7343", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PRAÇA DO SERENO", end: "RUA ERASIO EVANGELISTA", num: "6", bairro: "SAO JORGE III", lat: -19.9441658, lng: -43.9622659 },
+  { cod: "7344", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PRAÇA DOM BOSCO", end: "RUA MARECHAL BITENCOURT", num: "1213", bairro: "GRAJAU", lat: -19.9368753, lng: -43.963147 },
+  { cod: "7345", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PRAÇA DOUTOR CARLOS MARQUES", end: "PCA DOUTOR CARLOS MARQUES", num: "67", bairro: "CALAFATE", lat: -19.9238016, lng: -43.9687448 },
+  { cod: "7346", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PRAÇA IMPERIAL", end: "RUA FAUSTINO ASSUMPCAO", num: "60", bairro: "VILA MADRE GERTRUDES I", lat: -19.9502292, lng: -44.0041895 },
+  { cod: "7347", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PRAÇA ITUETA", end: "AVE PADRE JOSE MAURICIO", num: "911", bairro: "VILA VISTA ALEGRE", lat: -19.9551929, lng: -43.9974541 },
+  { cod: "7348", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PRAÇA LILE HADDADE", end: "PCA LILE HADDAD", num: "310", bairro: "HAVAI", lat: -19.9538896, lng: -43.9764931 },
+  { cod: "7349", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PRAÇA PAULO SIGAUD", end: "RUA FAUSTO ALVIM", num: "93", bairro: "CALAFATE", lat: -19.9267546, lng: -43.9794973 },
+  { cod: "7350", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PRAÇA PROFESSOR BORGES DA COSTA", end: "RUA CUIABA", num: "130", bairro: "PRADO", lat: -19.9284543, lng: -43.9589901 },
+  { cod: "7351", reg: "OESTE", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PRAÇA SAO JOSE", end: "PCA SAO JOSE", num: "170", bairro: "PARQUE SAO JOSE", lat: -19.9634573, lng: -43.9795951 },
+  { cod: "7353", reg: "OESTE", tipo: "VILA OLIMPICA", nome: "VILA OLIMPICA MORRO DAS PEDRAS", end: "RUA BRAS", num: "140", bairro: "SAO JORGE III", lat: -19.9486082, lng: -43.9677222 },
+  { cod: "7354", reg: "OESTE", tipo: "DRAS", nome: "DIRETORIA REGIONAL DE ASSISTENCIA SOCIAL OESTE", end: "AVE SILVA LOBO", num: "1280", bairro: "NOVA GRANADA", lat: -19.9357076, lng: -43.9710909 },
+  { cod: "G722", reg: "OESTE", tipo: "SUOPE", nome: "SUOPE OESTE", end: "RUA JOSE SEBASTIAO DAHER", num: "1340", bairro: "VILA AMARAL", lat: -19.9732784, lng: -44.0131969 },
+  { cod: "G724", reg: "OESTE", tipo: "FISCOPE", nome: "FISCOPE OESTE", end: "RUA JOSE SEBASTIAO DAHER", num: "1340", bairro: "VILA AMARAL", lat: -19.9732784, lng: -44.0131969 },
+  { cod: "G725", reg: "OESTE", tipo: "GETMO", nome: "GETMO OESTE", end: "RUA JOSE SEBASTIAO DAHER", num: "1340", bairro: "VILA AMARAL", lat: -19.9732784, lng: -44.0131969 },
+  { cod: "G728", reg: "OESTE", tipo: "GPE", nome: "GPE - O", end: "RUA JOSE SEBASTIAO DAHER", num: "1340", bairro: "VILA AMARAL", lat: -19.9732784, lng: -44.0131969 },
+  { cod: "G736", reg: "OESTE", tipo: "SUS", nome: "PATRULHA SUS OESTE", end: "RUA JOSE SEBASTIAO DAHER", num: "1340", bairro: "VILA AMARAL", lat: -19.9732784, lng: -44.0131969 },
+  { cod: "G756", reg: "OESTE", tipo: "PROTOCOLO", nome: "PROTOCOLO GMBH / BASE OESTE", end: "RUA AUGUSTO JOSE DOS SANTOS", num: "36", bairro: "BETANIA", lat: -19.9645234, lng: -43.9904766 },
+  { cod: "G763", reg: "OESTE", tipo: "ESPECIALIZADAS", nome: "EQUIPE FISCALIZA BH OESTE", end: "AV SILVA LOBO", num: "1280", bairro: "NOVA GRANADA", lat: -19.9357076, lng: -43.9710909 },
+
   // ... (Mocks para outras regionais para não quebrar o mapa)
   { cod: "3001", reg: "LESTE", tipo: "ESCOLA", nome: "Escola M. Leste Mock 1", end: "Rua Leste 1", num: "10", bairro: "Santa Tereza" },
   { cod: "3002", reg: "LESTE", tipo: "CS", nome: "Centro de Saude Leste Mock", end: "Rua Leste 2", num: "20", bairro: "Esplanada" },
   { cod: "4001", reg: "NORDESTE", tipo: "ESCOLA", nome: "Escola M. Nordeste Mock 1", end: "Rua NE 1", num: "10", bairro: "União" },
   { cod: "5001", reg: "NOROESTE", tipo: "ESCOLA", nome: "Escola M. Noroeste Mock 1", end: "Rua NO 1", num: "10", bairro: "Padre Eustáquio" },
   { cod: "6001", reg: "NORTE", tipo: "ESCOLA", nome: "Escola M. Norte Mock 1", end: "Rua Norte 1", num: "10", bairro: "Jaqueline" },
-  { cod: "7001", reg: "OESTE", tipo: "ESCOLA", nome: "Escola M. Oeste Mock 1", end: "Rua Oeste 1", num: "10", bairro: "Havaí" },
   { cod: "8001", reg: "PAMPULHA", tipo: "ESCOLA", nome: "Escola M. Pampulha Mock 1", end: "Rua Pampulha 1", num: "10", bairro: "Santa Amélia" },
   { cod: "2501", reg: "CENTRO-SUL", tipo: "PREFEITURA", nome: "Prefeitura de BH", end: "Av. Afonso Pena", num: "1212", bairro: "Centro" },
 ];
@@ -536,14 +683,14 @@ export const mapRawToProprio = (data: any): Proprio => {
   let lat = 0;
   let lng = 0;
 
-  // 1. Se tiver coordenada real (GPS Exato - Barreiro/Venda Nova), usa
+  // 1. Se tiver coordenada real (GPS Exato), usa
   if (data.lat && data.lng) {
-    lat = parseFloat(data.lat);
-    lng = parseFloat(data.lng);
+    lat = Number(data.lat);
+    lng = Number(data.lng);
   } 
   // 2. Se tiver bairro mapeado, usa centro do bairro + jitter (Simulação Inteligente)
-  else if (data.bairro && NEIGHBORHOOD_CENTERS[data.bairro]) {
-    const center = NEIGHBORHOOD_CENTERS[data.bairro];
+  else if (data.bairro && NEIGHBORHOOD_CENTERS[data.bairro.toUpperCase()]) {
+    const center = NEIGHBORHOOD_CENTERS[data.bairro.toUpperCase()];
     const coord = generateCoord(center.lat, center.lng, 0.008); 
     lat = coord.lat;
     lng = coord.lng;
@@ -577,7 +724,6 @@ export const getSimulationRoute = (regional: string): RoutePoint[] => {
   const regionalProprios = MOCK_PROPRIOS.filter(p => p.regional === regional);
   
   if (regionalProprios.length < 2) {
-    // Fallback to regional center if no proprios
     const center = REGIONAL_CENTERS[regional] || REGIONAL_CENTERS["CENTRO-SUL"];
     return [
       { lat: center.lat, lng: center.lng, timestamp: Date.now() },
@@ -585,9 +731,7 @@ export const getSimulationRoute = (regional: string): RoutePoint[] => {
     ];
   }
 
-  // Create a loop visiting some points
   const route: RoutePoint[] = [];
-  // Pick up to 5 random points
   for (let i = 0; i < 5; i++) {
     const p = regionalProprios[Math.floor(Math.random() * regionalProprios.length)];
     route.push({
@@ -596,7 +740,6 @@ export const getSimulationRoute = (regional: string): RoutePoint[] => {
       timestamp: Date.now()
     });
   }
-  // Close the loop
   route.push(route[0]);
   return route;
 };
