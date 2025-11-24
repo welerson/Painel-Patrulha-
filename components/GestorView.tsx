@@ -115,6 +115,14 @@ export const GestorView: React.FC<GestorViewProps> = ({ user, onLogout }) => {
   const unvisitedCount = totalProprios - visitedCount;
   const totalPassagens = relevantVisits.length; 
 
+  // Helper to format seconds into MM:SS min
+  const formatDuration = (seconds?: number) => {
+    if (seconds === undefined || seconds === null) return '-';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')} min`;
+  };
+
   const generatePDF = () => {
     const doc = new jsPDF();
     
@@ -136,7 +144,7 @@ export const GestorView: React.FC<GestorViewProps> = ({ user, onLogout }) => {
       v.idViatura,
       v.agente,
       v.nome_equipamento.substring(0, 20) + '...',
-      v.durationSeconds ? `${v.durationSeconds}s` : '-',
+      formatDuration(v.durationSeconds),
       '' // Placeholder for Image
     ]);
 
@@ -150,14 +158,16 @@ export const GestorView: React.FC<GestorViewProps> = ({ user, onLogout }) => {
           const visitIndex = data.row.index;
           const visit = relevantVisits[visitIndex];
           
-          if (visit && visit.photo) {
+          if (!visit) return; // Safety check
+
+          if (visit.photo) {
             try {
               // Add thumbnail image to PDF
               doc.addImage(visit.photo, 'JPEG', data.cell.x + 2, data.cell.y + 2, 10, 10);
             } catch (e) {
               // console.error("Erro ao adicionar imagem no PDF", e);
             }
-          } else if (isQualitativeTarget(visit.nome_equipamento)) {
+          } else if (visit.nome_equipamento && isQualitativeTarget(visit.nome_equipamento)) {
              doc.setTextColor(200, 0, 0);
              doc.setFontSize(8);
              doc.text("Pendente", data.cell.x + 2, data.cell.y + 8);
@@ -173,13 +183,6 @@ export const GestorView: React.FC<GestorViewProps> = ({ user, onLogout }) => {
     { name: 'Feito', value: visitedCount, fill: '#10b981' },
     { name: 'Pendente', value: unvisitedCount, fill: '#3b82f6' }
   ];
-
-  const formatDuration = (seconds?: number) => {
-    if (!seconds) return '-';
-    if (seconds < 60) return `${seconds}s`;
-    const mins = Math.floor(seconds / 60);
-    return `${mins}min`;
-  };
 
   return (
     <div className="flex flex-col h-screen bg-slate-100 overflow-hidden">
@@ -198,7 +201,14 @@ export const GestorView: React.FC<GestorViewProps> = ({ user, onLogout }) => {
           <p className="font-bold">Acesso Bloqueado pelo Firebase</p>
           <p className="text-sm">Como você ativou a Autenticação, atualize as regras em <strong>Firebase Console &gt; Firestore Database &gt; Rules</strong> para:</p>
           <pre className="bg-red-50 p-2 mt-1 rounded text-xs font-mono border border-red-200 overflow-x-auto">
-            allow read, write: if request.auth != null;
+            rules_version = '2';
+            service cloud.firestore {'{'}
+              match /databases/{'{'}database{'}'}/documents {'{'}
+                match /{'{}'}document=**{'}'} {'{'}
+                  allow read, write: if request.auth != null;
+                {'}'}
+              {'}'}
+            {'}'}
           </pre>
         </div>
       )}
@@ -366,13 +376,9 @@ export const GestorView: React.FC<GestorViewProps> = ({ user, onLogout }) => {
                            )}
                          </td>
                          <td className="p-3 text-center text-slate-600 font-mono text-xs">
-                           {visit.durationSeconds ? (
-                             <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-100">
-                               {formatDuration(visit.durationSeconds)}
-                             </span>
-                           ) : (
-                             <span className="text-slate-400">-</span>
-                           )}
+                           <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-100 whitespace-nowrap">
+                             {formatDuration(visit.durationSeconds)}
+                           </span>
                          </td>
                        </tr>
                      );
