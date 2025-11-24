@@ -5,24 +5,24 @@ import { Proprio, RoutePoint, Visit } from '../types';
 import { formatTime, formatDate, getProprioStatus } from '../utils/geo';
 
 // Icons configuration
-const createIcon = (status: 'green' | 'orange' | 'red' | 'viatura', isViatura = false) => {
+const createIcon = (status: 'green' | 'blue' | 'red' | 'viatura', isViatura = false) => {
   const size = isViatura ? 32 : 14;
   
   let colorHex = '#3b82f6'; 
   let borderColor = 'white';
 
   if (isViatura) {
-    colorHex = '#ef4444';
+    colorHex = '#ef4444'; // Viatura Vermelha
   } else {
     switch (status) {
       case 'green': 
-        colorHex = '#10b981'; // Verde
+        colorHex = '#10b981'; // Verde (Visitado Hoje)
         break;
-      case 'orange': 
-        colorHex = '#3b82f6'; // AZUL (Antes era Laranja)
+      case 'blue': 
+        colorHex = '#3b82f6'; // AZUL (Pendente Hoje / Recente)
         break;
       case 'red': 
-        colorHex = '#ef4444'; // Vermelho
+        colorHex = '#ef4444'; // Vermelho (Atrasado)
         break;
     }
   }
@@ -98,20 +98,23 @@ export const MapComponent: React.FC<MapProps> = ({ proprios, visits, currentPosi
         const propVisits = getVisitInfo(proprio.cod);
         const lastVisit = propVisits.length > 0 ? propVisits[0] : undefined;
         
+        // Agora retorna 'green', 'blue' ou 'red'
         const status = getProprioStatus(lastVisit?.timestamp, proprio.prioridade);
         
-        // Legenda do Popup
-        let statusText = "";
-        if (proprio.prioridade === 'ALTA') {
-           statusText = status === 'green' ? 'Visitado Hoje (OK)' : status === 'orange' ? 'Planejamento (Fazer Hoje)' : 'CRÍTICO (> 3 dias)';
-        } else {
-           statusText = status === 'green' ? 'Em dia (Rotação OK)' : status === 'orange' ? 'Atenção (Expirando)' : 'Atrasado';
-        }
+        let statusText = '';
+        if (status === 'green') statusText = 'Visitado Hoje (OK)';
+        else if (status === 'blue') statusText = 'Planejamento (Fazer Hoje)';
+        else statusText = 'Atrasado (> 3 dias)';
         
         const statusColorClass = 
           status === 'green' ? 'text-emerald-700' : 
-          status === 'orange' ? 'text-blue-600' : 
+          status === 'blue' ? 'text-blue-600' : 
           'text-red-600';
+
+        const statusBgClass = 
+          status === 'green' ? 'bg-emerald-500' : 
+          status === 'blue' ? 'bg-blue-500' : 
+          'bg-red-500';
 
         return (
           <Marker 
@@ -124,16 +127,18 @@ export const MapComponent: React.FC<MapProps> = ({ proprios, visits, currentPosi
               <div className="text-sm min-w-[220px]">
                 <div className="flex justify-between items-start mb-1">
                    <h3 className="font-bold text-slate-800 text-base pr-2">{proprio.nome_equipamento}</h3>
-                   <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${proprio.prioridade === 'ALTA' ? 'bg-purple-50 border-purple-200 text-purple-700' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>
-                     {proprio.prioridade}
-                   </span>
+                   {proprio.prioridade && (
+                     <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border bg-gray-50 border-gray-200 text-gray-600">
+                       {proprio.prioridade}
+                     </span>
+                   )}
                 </div>
                 <p className="text-slate-600 mt-1">{proprio.tipo_logradouro} {proprio.nome_logradouro}, {proprio.numero_imovel}</p>
                 <p className="text-slate-500 text-xs mb-2">{proprio.bairro} - {proprio.regional}</p>
                 
                 <div className="pt-2 border-t border-slate-200 bg-slate-50 -mx-4 -mb-4 p-3 rounded-b">
                   <div className="flex items-center gap-2 mb-2">
-                     <div className={`w-2 h-2 rounded-full ${status === 'green' ? 'bg-emerald-500' : status === 'orange' ? 'bg-blue-500' : 'bg-red-500'}`}></div>
+                     <div className={`w-2 h-2 rounded-full ${statusBgClass}`}></div>
                      <span className={`${statusColorClass} font-bold text-xs uppercase`}>
                        {statusText}
                      </span>

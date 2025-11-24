@@ -96,7 +96,7 @@ export const GestorView: React.FC<GestorViewProps> = ({ user, onLogout }) => {
     const status = getProprioStatus(lastVisit?.timestamp, prop.prioridade);
     
     if (status === 'green') statusGreen++;
-    else if (status === 'orange') statusBlue++;
+    else if (status === 'blue') statusBlue++;
     else statusRed++;
   });
 
@@ -139,7 +139,7 @@ export const GestorView: React.FC<GestorViewProps> = ({ user, onLogout }) => {
       didDrawCell: (data) => {
         if (data.section === 'body' && data.column.index === 6) {
           const visit = filteredVisits[data.row.index];
-          if (visit && visit.photo) { // Segurança anti-crash
+          if (visit && visit.photo) { 
             try {
               doc.addImage(visit.photo, 'JPEG', data.cell.x + 2, data.cell.y + 2, 10, 10);
             } catch (e) {}

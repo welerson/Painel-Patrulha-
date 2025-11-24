@@ -51,35 +51,29 @@ export const isQualitativeTarget = (nomeEquipamento: string): boolean => {
 };
 
 /**
- * Lógica Híbrida de Prioridade:
+ * Lógica Simplificada de Status (Corrigida para Azul):
  * 
- * ALTA (Escolas/Saúde):
- * - Verde: Feito HOJE (após 00:00).
- * - Azul: Feito recentemente (1-2 dias), mas precisa refazer hoje (Planejamento).
- * - Vermelho: Atrasado (> 3 dias).
- * 
- * PADRAO (Praças):
- * - Verde: Válido por 48h (Rotação).
- * - Azul: 48h-72h (Atenção).
- * - Vermelho: > 72h (Atrasado).
+ * - GREEN: Visitado HOJE (00:00 em diante). Meta cumprida.
+ * - BLUE (Antigo Orange): Visitado recentemente (últimos 3 dias), mas NÃO HOJE. 
+ *   Significa: "Está na validade, mas deve ser visitado hoje pela nova equipe".
+ * - RED: Não visitado há mais de 3 dias. Crítico.
  */
-export const getProprioStatus = (lastVisitTs: number | undefined, priority: 'ALTA' | 'PADRAO'): 'green' | 'orange' | 'red' => {
+export const getProprioStatus = (lastVisitTs: number | undefined, priority?: string): 'green' | 'blue' | 'red' => {
   if (!lastVisitTs) return 'red'; // Nunca visitado
 
   const startOfToday = getStartOfDay();
   const daysSince = getDaysSince(lastVisitTs);
 
-  if (priority === 'ALTA') {
-    // Alta Prioridade: Verde só se foi HOJE
-    if (lastVisitTs >= startOfToday) return 'green';
-    // Se foi ontem ou anteontem, é AZUL (Planejamento do dia, não crítico)
-    if (daysSince < 3) return 'orange';
-    // Se faz mais tempo, é VERMELHO (Crítico)
-    return 'red';
-  } else {
-    // Padrão: Rotação de equipes
-    if (daysSince < 2) return 'green'; // Verde por 48h
-    if (daysSince < 3) return 'orange'; // Azul entre 2 e 3 dias
-    return 'red'; // Crítico após 3 dias
+  // Se foi visitado hoje, está OK (Verde)
+  if (lastVisitTs >= startOfToday) {
+    return 'green';
   }
+
+  // Se foi visitado nos últimos 3 dias (mas não hoje), precisa de atenção/visita do dia (Azul)
+  if (daysSince < 3) {
+    return 'blue';
+  }
+
+  // Se faz mais de 3 dias, é crítico (Vermelho)
+  return 'red';
 };

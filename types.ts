@@ -13,7 +13,7 @@ export interface Proprio {
   regional: string;
   lat: number;
   lng: number;
-  prioridade: 'ALTA' | 'PADRAO'; // ALTA (Diário) vs PADRAO (Rotação)
+  prioridade?: 'ALTA' | 'PADRAO'; // Opcional para evitar quebra
 }
 
 export interface Visit {
