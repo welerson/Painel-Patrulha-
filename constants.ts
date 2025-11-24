@@ -1,3 +1,4 @@
+
 import { Proprio, RoutePoint } from './types';
 
 // Helper to generate random coordinates around a center point to simulate geocoding
@@ -26,7 +27,7 @@ const determinePriority = (nome: string): 'ALTA' | 'PADRAO' => {
   return 'PADRAO';
 };
 
-// Regional Centers in BH (Calibrated for better distribution)
+// Regional Centers in BH
 const REGIONAL_CENTERS: Record<string, { lat: number, lng: number }> = {
   "BARREIRO": { lat: -19.977, lng: -44.014 },
   "CENTRO-SUL": { lat: -19.935, lng: -43.937 },
@@ -39,7 +40,7 @@ const REGIONAL_CENTERS: Record<string, { lat: number, lng: number }> = {
   "VENDA NOVA": { lat: -19.816, lng: -43.983 }
 };
 
-// Neighborhood Centers for Better Mock Geocoding
+// Neighborhood Centers for Better Mock Geocoding (Fallbacks)
 const NEIGHBORHOOD_CENTERS: Record<string, { lat: number, lng: number }> = {
   "Mantiqueira": { lat: -19.795, lng: -43.985 },
   "Céu Azul": { lat: -19.820, lng: -44.000 },
@@ -54,50 +55,272 @@ const NEIGHBORHOOD_CENTERS: Record<string, { lat: number, lng: number }> = {
   "Venda Nova": { lat: -19.815, lng: -43.955 },
   "Jaqueline": { lat: -19.820, lng: -43.935 },
   "Juliana": { lat: -19.825, lng: -43.930 },
-  "São Bernardo": { lat: -19.835, lng: -43.940 }
+  "São Bernardo": { lat: -19.835, lng: -43.940 },
+  "Tirol": { lat: -19.990, lng: -44.035 },
+  "Cardoso": { lat: -19.999, lng: -44.006 },
+  "Lindéia": { lat: -19.980, lng: -44.050 },
+  "Milionários": { lat: -19.980, lng: -44.000 },
+  "Diamante": { lat: -19.990, lng: -44.020 }
 };
 
-// RAW_DATA deve conter a lista completa (Barreiro, Venda Nova, etc) que você já possui no arquivo atual.
-// Por brevidade no diff, estou mantendo a referência ao RAW_DATA existente no seu código,
-// mas a função de mapeamento abaixo é que muda.
-
-// Se você precisar que eu reenvie o RAW_DATA inteiro, me avise. 
-// Assumindo que o RAW_DATA está lá (do prompt anterior).
-// ... (Omitted large RAW_DATA array for brevity, assuming it exists in the file)
-// Vou colocar apenas um array vazio aqui para o compilador, mas NO ARQUIVO REAL mantenha os dados.
+// DADOS COMPLETOS (BARREIRO E VENDA NOVA COM GPS REAL)
 const RAW_DATA: any[] = [
-  // ... (Mantenha os dados que já estão no arquivo)
-  // Caso tenha sobrescrito, copie os dados do prompt anterior "Venda Nova Completo" e "Barreiro Completo"
+  // --- BARREIRO (DADOS REAIS GPS) ---
+  { cod: "1001", reg: "BARREIRO", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL AIRES DA MATA MACHADO", end: "AVE SENADOR LEVINDO COELHO", num: "632", bairro: "TIROL", lat: -19.9940696974161, lng: -44.0349940192986 },
+  { cod: "1002", reg: "BARREIRO", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL ANA ALVES TEIXEIRA", end: "RUA BARAO DO MONTE ALTO", num: "300", bairro: "CARDOSO", lat: -19.9990916948369, lng: -44.0066899776549 },
+  { cod: "1003", reg: "BARREIRO", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL ANTONIO ALEIXO", end: "AVE OLINTO MEIRELES", num: "250", bairro: "BARREIRO", lat: -19.9735032742744, lng: -44.0138383304447 },
+  { cod: "1004", reg: "BARREIRO", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL ANTONIO MOURAO GUIMARAES", end: "RUA INTERSINDICAL", num: "270", bairro: "FLAVIO DE OLIVEIRA", lat: -20.001512966285, lng: -44.0024825203181 },
+  { cod: "1005", reg: "BARREIRO", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL ANTONIO SALLES BARBOSA", end: "RUA SABINO JOSE FERREIRA", num: "5", bairro: "TIROL", lat: -19.9843028348023, lng: -44.0455290243069 },
+  { cod: "1006", reg: "BARREIRO", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL AURELIO BUARQUE DE HOLANDA", end: "RUA FORTUNATO BRUNO DINIZ", num: "40", bairro: "LINDEIA", lat: -19.9771125185176, lng: -44.0580068848331 },
+  { cod: "1007", reg: "BARREIRO", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL CIAC LUCAS MONTEIRO MACHADO", end: "RUA OTAVIANO DE CARVALHO", num: "12", bairro: "VILA PINHO", lat: -19.9999320531995, lng: -44.0265395865262 },
+  { cod: "1008", reg: "BARREIRO", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL CONEGO SEQUEIRA", end: "RUA FLOR CHUVA DE PRATA", num: "40", bairro: "MINEIRAO", lat: -20.0231315840178, lng: -44.0294384734652 },
+  { cod: "1009", reg: "BARREIRO", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL DINORAH MAGALHAES FABRI", end: "RUA PAVAO", num: "295", bairro: "ESPERANÇA", lat: -19.9940478203601, lng: -43.9905986229537 },
+  { cod: "1010", reg: "BARREIRO", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL DULCE MARIA HOMEM", end: "RUA TRES MARIAS", num: "221", bairro: "MIRAMAR", lat: -19.9948764725643, lng: -44.0127768605225 },
+  { cod: "1011", reg: "BARREIRO", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL EDITH PIMENTA DA VEIGA", end: "ALA VARGEM GRANDE", num: "38", bairro: "CASTANHEIRA", lat: -19.9962370077345, lng: -44.0313665498217 },
+  { cod: "1012", reg: "BARREIRO", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL ELOY HERALDO LIMA", end: "RUA ENGRACIA COSTA E SILVA", num: "56", bairro: "VALE DO JATOBA", lat: -20.0048855794827, lng: -44.0415677592725 },
+  { cod: "1013", reg: "BARREIRO", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL HELENA ANTIPOFF", end: "RUA ANTONIO EUSTAQUIO PIAZZA", num: "4020", bairro: "TIROL", lat: -19.9905536029743, lng: -44.0451665730304 },
+  { cod: "1014", reg: "BARREIRO", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL JONAS BARCELLOS CORREA", end: "RUA PROFESSORA DIRCE MARIA", num: "240", bairro: "PETROPOLIS", lat: -20.0155030505118, lng: -44.0298660956123 },
+  { cod: "1015", reg: "BARREIRO", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL LUIZ GATTI", end: "RUA O GARIMPEIRO", num: "45", bairro: "ADEMAR MALDONADO", lat: -19.982083629475, lng: -44.0261994854036 },
+  { cod: "1016", reg: "BARREIRO", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL LUIZ GONZAGA JUNIOR", end: "RUA MARIA PEREIRA DAMASCENO", num: "65", bairro: "ERNESTO DO NASCIMENTO", lat: -20.0086471858889, lng: -44.0322618860544 },
+  { cod: "1017", reg: "BARREIRO", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL PADRE FLAVIO GIAMMETTA", end: "RUA SEBASTIAO MARIA DA SILVA", num: "175", bairro: "ATILA DE PAIVA", lat: -19.9777466640799, lng: -44.0273210920891 },
+  { cod: "1018", reg: "BARREIRO", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL PEDRO ALEIXO", end: "AVE MENELICK DE CARVALHO", num: "255", bairro: "ARAGUAIA", lat: -19.9939721353903, lng: -44.0020562565877 },
+  { cod: "1019", reg: "BARREIRO", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL PEDRO NAVA", end: "RUA SAO PEDRO DA ALDEIA", num: "445", bairro: "SERRA DO CURRAL", lat: -19.9995205479298, lng: -43.9666311077481 },
+  { cod: "1020", reg: "BARREIRO", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL PROFESSOR HILTON ROCHA", end: "RUA VICENTE SURETTE", num: "215", bairro: "MANGUEIRAS", lat: -20.0129189672662, lng: -44.0374242494935 },
+  { cod: "1021", reg: "BARREIRO", tipo: "EMEI", nome: "EMEI PROFESSOR JOSE BRAZ", end: "RUA JOSE ZUQUIM", num: "210", bairro: "SANTA MARGARIDA", lat: -19.9713961384053, lng: -44.0185478987498 },
+  { cod: "1022", reg: "BARREIRO", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL PROFESSOR MELLO CANCADO", end: "RUA DAS PETUNIAS", num: "2058", bairro: "LINDEIA", lat: -19.9810642611065, lng: -44.0531441982241 },
+  { cod: "1023", reg: "BARREIRO", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL PROFESSORA ISAURA SANTOS", end: "RUA HOFFMAN", num: "80", bairro: "SANTA HELENA", lat: -19.9893056195397, lng: -44.0091074066052 },
+  { cod: "1024", reg: "BARREIRO", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL SEBASTIAO GUILHERME DE OLIVEIRA", end: "RUA CALENDULA", num: "10", bairro: "OLARIA", lat: -19.9894888523475, lng: -44.0298719601119 },
+  { cod: "1025", reg: "BARREIRO", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL UNIAO COMUNITARIA", end: "RUA PROFESSOR LUIZ BICALHO", num: "505", bairro: "BRASIL INDUSTRIAL", lat: -20.0004242519355, lng: -44.0145010514845 },
+  { cod: "1026", reg: "BARREIRO", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL DA VILA PINHO", end: "RUA COLETORA", num: "956", bairro: "VILA PINHO", lat: -20.0034860946859, lng: -44.0233127085026 },
+  { cod: "1027", reg: "BARREIRO", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL VINICIUS DE MORAES", end: "RUA SEBASTIAO MOREIRA", num: "409", bairro: "TIROL", lat: -19.9900047374384, lng: -44.0391203759631 },
+  { cod: "1028", reg: "BARREIRO", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL PRESIDENTE ITAMAR FRANCO", end: "AVE PERIMETRAL", num: "2911", bairro: "PETROPOLIS", lat: -20.012311676802, lng: -44.0266078579347 },
+  { cod: "1029", reg: "BARREIRO", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL SOLAR RUBI", end: "AVE WARLEY APARECIDO MARTINS", num: "854", bairro: "SOLAR DO BARREIRO", lat: -20.0115023549719, lng: -44.014376347915 },
+  { cod: "1030", reg: "BARREIRO", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL POLO DE EDUCAÇAO INTEGRADA", end: "PCA MODESTINO SALES BARBOSA", num: "50", bairro: "FLAVIO MARQUES LISBOA", lat: -19.9961128943168, lng: -44.0058854956635 },
+  { cod: "1061", reg: "BARREIRO", tipo: "EMEI", nome: "EMEI LUCAS MONTEIRO MACHADO", end: "RUA SOLDADO WEVERSON DE ALMEIDA", num: "350", bairro: "VILA PINHO", lat: -19.9993565077048, lng: -44.0272141909622 },
+  { cod: "1062", reg: "BARREIRO", tipo: "EMEI", nome: "EMEI SOLAR RUBI", end: "AVE WARLEY APARECIDO MARTINS", num: "730", bairro: "SOLAR DO BARREIRO", lat: -20.0103109098234, lng: -44.0147865612418 },
+  { cod: "1063", reg: "BARREIRO", tipo: "EMEI", nome: "EMEI TIROL", end: "PCA MARIETA PULQUERIA DE JESUS", num: "20", bairro: "TIROL", lat: -19.9944886592762, lng: -44.03517124798 },
+  { cod: "1064", reg: "BARREIRO", tipo: "EMEI", nome: "EMEI MALDONADO", end: "RUA ALCINDO GONCALVES COTTA", num: "105", bairro: "DIAMANTE", lat: -19.9839580042005, lng: -44.0243478001368 },
+  { cod: "1065", reg: "BARREIRO", tipo: "EMEI", nome: "EMEI CARDOSO", end: "RUA SOLIDARIEDADE", num: "477", bairro: "FLAVIO DE OLIVEIRA", lat: -20.0012401238786, lng: -44.0027675170672 },
+  { cod: "1066", reg: "BARREIRO", tipo: "EMEI", nome: "EMEI JATOBA IV", end: "AVE AGENOR NONATO DE SOUZA", num: "8", bairro: "VALE DO JATOBA", lat: -20.0046255864418, lng: -44.0362889705039 },
+  { cod: "1068", reg: "BARREIRO", tipo: "EMEI", nome: "EMEI PILAR OLHOS D´AGUA", end: "AVE SIGMUND WEISS", num: "25", bairro: "PILAR", lat: -19.9995954961599, lng: -43.9711122989897 },
+  { cod: "1069", reg: "BARREIRO", tipo: "EMEI", nome: "EMEI SOL NASCENTE", end: "RUA MARIA LETICIA", num: "800", bairro: "MILIONARIOS", lat: -19.9770278675862, lng: -43.9944889209677 },
+  { cod: "1070", reg: "BARREIRO", tipo: "EMEI", nome: "EMEI JOSE ISIDORO FILHO", end: "RUA ATLANTA", num: "42", bairro: "ESPERANÇA", lat: -19.9934177095256, lng: -43.9898999982648 },
+  { cod: "1071", reg: "BARREIRO", tipo: "EMEI", nome: "EMEI AGUAS CLARAS", end: "RUA CLEMENTE BORGES DOS SANTOS", num: "150", bairro: "AGUAS CLARAS", lat: -20.0113284331413, lng: -44.0227523454558 },
+  { cod: "1072", reg: "BARREIRO", tipo: "EMEI", nome: "EMEI MANGUEIRAS", end: "RUA COROA DE FRADE", num: "328", bairro: "MANGUEIRAS", lat: -20.0124514594796, lng: -44.0370575579433 },
+  { cod: "1073", reg: "BARREIRO", tipo: "EMEI", nome: "EMEI MIRAMAR", end: "RUA TRES MARIAS", num: "151", bairro: "MIRAMAR", lat: -19.9947700251243, lng: -44.0122203695442 },
+  { cod: "1075", reg: "BARREIRO", tipo: "EMEI", nome: "EMEI DIAMANTE", end: "RUA AZARIAS DUARTE", num: "180", bairro: "DIAMANTE", lat: -19.9968183324192, lng: -44.0193741697555 },
+  { cod: "1077", reg: "BARREIRO", tipo: "EMEI", nome: "EMEI PETROPOLIS", end: "RUA FREDERICO BOY PRUSSIANO", num: "455", bairro: "PETROPOLIS", lat: -20.0127804155818, lng: -44.0275567962511 },
+  { cod: "1078", reg: "BARREIRO", tipo: "EMEI", nome: "EMEI SOLAR URUCUIA", end: "RUA NELSON DE PAULA PIRES", num: "411", bairro: "PONGELUPE", lat: -20.0099656925074, lng: -44.0093865760598 },
+  { cod: "1079", reg: "BARREIRO", tipo: "EMEI", nome: "EMEI BAIRRO DAS INDUSTRIAS", end: "RUA IRMA MARIA PAULA", num: "254", bairro: "BAIRRO DAS INDUSTRIAS I", lat: -19.9658414711742, lng: -44.0005785792648 },
+  { cod: "1080", reg: "BARREIRO", tipo: "EMEI", nome: "EMEI BARREIRO", end: "RUA SAO PAULO DA CRUZ", num: "65", bairro: "BARREIRO", lat: -19.980663662946, lng: -44.0111104021107 },
+  { cod: "1081", reg: "BARREIRO", tipo: "EMEI", nome: "EMEI ITAIPU", end: "RUA TINGUI", num: "221", bairro: "CDI JATOBA", lat: -19.9950027569978, lng: -44.0431999029197 },
+  { cod: "1082", reg: "BARREIRO", tipo: "EMEI", nome: "EMEI LINDEIA", end: "RUA DOS PINHOS", num: "91", bairro: "LINDEIA", lat: -19.9772098880075, lng: -44.0512917341518 },
+  { cod: "1100", reg: "BARREIRO", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE BAIRRO DAS INDUSTRIAS", end: "RUA MARIA DE LOURDES MANSO", num: "80", bairro: "BAIRRO DAS INDUSTRIAS I", lat: -19.9636479590069, lng: -44.0008817547327 },
+  { cod: "1101", reg: "BARREIRO", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE BARREIRO - CARLOS RENATO DIAS", end: "RUA JOSE GONCALVES", num: "375", bairro: "BARREIRO", lat: -19.9756561036792, lng: -44.0226572803766 },
+  { cod: "1103", reg: "BARREIRO", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE BARREIRO DE CIMA", end: "PCA MODESTINO SALES BARBOSA", num: "100", bairro: "FLAVIO MARQUES LISBOA", lat: -19.9958175838827, lng: -44.0052423111253 },
+  { cod: "1104", reg: "BARREIRO", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE BONSUCESSO", end: "RUA DOUTOR CRISTIANO REZENDE", num: "1875", bairro: "BONSUCESSO", lat: -19.9871416901277, lng: -43.9888726573663 },
+  { cod: "1105", reg: "BARREIRO", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE DIAMANTE - TEIXEIRA DIAS", end: "RUA MARIA MARCOLINA SOUZA", num: "40", bairro: "TEIXEIRA DIAS", lat: -19.9919204546396, lng: -44.0159339419622 },
+  { cod: "1106", reg: "BARREIRO", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE INDEPENDENCIA", end: "RUA MARIA ANTONIETA FERREIRA", num: "151", bairro: "INDEPENDENCIA", lat: -20.0197906247405, lng: -44.0315045983184 },
+  { cod: "1107", reg: "BARREIRO", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE ITAIPU - JATOBA", end: "RUA WANDERLEY DE SALES BARBOSA", num: "350", bairro: "MARILANDIA", lat: -19.9962466649989, lng: -44.0484536072477 },
+  { cod: "1108", reg: "BARREIRO", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE LINDEIA - MARIA MADALENA TEODORO", end: "RUA FLOR DE MAIO", num: "172", bairro: "LINDEIA", lat: -19.9791705763281, lng: -44.0466862745058 },
+  { cod: "1109", reg: "BARREIRO", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE MANGUEIRAS", end: "RUA CHAFARIZ", num: "4", bairro: "PETROPOLIS", lat: -20.0138829903684, lng: -44.0309180360688 },
+  { cod: "1110", reg: "BARREIRO", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE MILIONARIOS", end: "RUA DOS CRUZEIRENSES", num: "30", bairro: "MILIONARIOS", lat: -19.9811137552924, lng: -43.9992946564873 },
+  { cod: "1111", reg: "BARREIRO", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE MIRAMAR - EDUARDO MAURO DE ARAUJO", end: "RUA ERIDANO", num: "540", bairro: "MIRAMAR", lat: -19.9976210825825, lng: -44.011634309382 },
+  { cod: "1112", reg: "BARREIRO", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE PILAR - OLHOS DAGUA", end: "RUA SAO PEDRO DA ALDEIA", num: "55", bairro: "SERRA DO CURRAL", lat: -19.9996512076268, lng: -43.9669154979757 },
+  { cod: "1113", reg: "BARREIRO", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE SANTA CECILIA", end: "RUA PAULO DUARTE", num: "280", bairro: "SANTA CECILIA", lat: -19.9996089281861, lng: -44.0327123368014 },
+  { cod: "1114", reg: "BARREIRO", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE TIROL - FRANCISCO GOMES BARBOSA", end: "AVE NELIO CERQUEIRA", num: "15", bairro: "TIROL", lat: -19.9851686661369, lng: -44.0354666485804 },
+  { cod: "1115", reg: "BARREIRO", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE LISANDRA ANGELICA DAVID JUSTINO - TUNEL DE IBIRITE", end: "RUA WALDIR CESAR BRANQUINHO", num: "121", bairro: "TUNEL DE IBIRITE", lat: -19.9880033356717, lng: -44.0465155057597 },
+  { cod: "1116", reg: "BARREIRO", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE URUCUIA", end: "RUA NELSON DE PAULA PIRES", num: "325", bairro: "PONGELUPE", lat: -20.0096023871821, lng: -44.0081477774291 },
+  { cod: "1117", reg: "BARREIRO", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE VALE DO JATOBA", end: "RUA LUIZ LEITE DE FARIA", num: "171", bairro: "VALE DO JATOBA", lat: -20.0102568764749, lng: -44.0362125109584 },
+  { cod: "1118", reg: "BARREIRO", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE VILA CEMIG", end: "RUA COLETIVO", num: "68", bairro: "VILA CEMIG", lat: -19.9979282712272, lng: -43.9924390342303 },
+  { cod: "1119", reg: "BARREIRO", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE VILA PINHO", end: "RUA OTAVIANO DE CARVALHO", num: "174", bairro: "VILA PINHO", lat: -20.0007951003607, lng: -44.026229118007 },
+  { cod: "1120", reg: "BARREIRO", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE REGINA", end: "RUA ARISTOLINO BASILIO DE OLIVEIRA", num: "467", bairro: "LINDEIA", lat: -19.9825551153399, lng: -44.0547504497402 },
+  { cod: "1150", reg: "BARREIRO", tipo: "UPA", nome: "UNIDADE DE PRONTO ATENDIMENTO BARREIRO", end: "RUA AURELIO LOPES", num: "80", bairro: "DIAMANTE", lat: -19.9959269284907, lng: -44.0201513878692 },
+  { cod: "1240", reg: "BARREIRO", tipo: "PRAÇA", nome: "PRAÇA PADRE ALFREDO SABETTA", end: "PCA PADRE ALFREDO SABETTA", num: "430", bairro: "SANTA HELENA", lat: -19.9866162366768, lng: -44.0132473744168 },
+  { cod: "1241", reg: "BARREIRO", tipo: "PRAÇA", nome: "PRAÇA AGAPANTO", end: "AVE FLOR DE SEDA", num: "486", bairro: "LINDEIA", lat: -19.9779392170449, lng: -44.0522986500392 },
+  { cod: "1350", reg: "BARREIRO", tipo: "RESTAURANTE", nome: "RESTAURANTE POPULAR DOM MAURO BASTOS", end: "AVE AFONSO VAZ DE MELO", num: "1001", bairro: "BARREIRO", lat: -19.9761133291274, lng: -44.0236850031663 },
+  { cod: "1438", reg: "BARREIRO", tipo: "CENTRO POLIESPORTIVO", nome: "CENTRO ESPORTIVO VALE DO JATOBA - CESVJ", end: "AVE SENADOR LEVINDO COELHO", num: "2166", bairro: "VALE DO JATOBA", lat: -20.008022833989, lng: -44.0347673407211 },
+  
+  // --- VENDA NOVA (DADOS REAIS GPS) ---
+  { cod: "9001", reg: "VENDA NOVA", tipo: "CONSELHO TUTELAR", nome: "CONSELHO TUTELAR VENDA NOVA", end: "RUA BOA VISTA", num: "189", bairro: "SAO JOAO BATISTA", lat: -19.8189718921481, lng: -43.9552033897058 },
+  { cod: "9003", reg: "VENDA NOVA", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL ADAUTO LUCIO CARDOSO", end: "RUA ERNESTO GAZZOLLI", num: "164", bairro: "CEU AZUL", lat: -19.8159626251557, lng: -43.9980325593253 },
+  { cod: "9004", reg: "VENDA NOVA", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL ANTONIA FERREIRA", end: "RUA JOAO GUALBERTO DE ABREU", num: "10", bairro: "SAO JOAO BATISTA", lat: -19.8187874222468, lng: -43.9624227326073 },
+  { cod: "9005", reg: "VENDA NOVA", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL ANTONIO GOMES HORTA", end: "RUA ANTONIO JOSE DE OLIVEIRA", num: "161", bairro: "MINASCAIXA", lat: -19.8119252688271, lng: -43.9555084251439 },
+  { cod: "9006", reg: "VENDA NOVA", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL ARMANDO ZILLER", end: "RUA GERALDO ILIDIO TEIXEIRA", num: "283", bairro: "MANTIQUEIRA", lat: -19.7853219676605, lng: -43.9835765539641 },
+  { cod: "9007", reg: "VENDA NOVA", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL CARLOS DRUMMOND DE ANDRADE", end: "RUA JOSE GALDING", num: "21", bairro: "LETICIA", lat: -19.8061162498193, lng: -43.9772326195091 },
+  { cod: "9008", reg: "VENDA NOVA", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL CONEGO RAIMUNDO TRINDADE", end: "RUA BRODOSQUI", num: "51", bairro: "PIRATININGA", lat: -19.8061250780989, lng: -43.9890679645821 },
+  { cod: "9009", reg: "VENDA NOVA", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL CORA CORALINA", end: "RUA LISBOA", num: "54", bairro: "COPACABANA", lat: -19.8356737913018, lng: -43.9903048543459 },
+  { cod: "9010", reg: "VENDA NOVA", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL DEPUTADO RENATO AZEREDO", end: "RUA AGUA", num: "240", bairro: "MARIA HELENA", lat: -19.7966546907289, lng: -43.9922516262242 },
+  { cod: "9011", reg: "VENDA NOVA", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL DORA TOMICH LAENDER", end: "RUA JULITA NUNES LIMA", num: "53", bairro: "CONJUNTO MINASCAIXA", lat: -19.8061844597663, lng: -43.9593696750385 },
+  { cod: "9012", reg: "VENDA NOVA", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL ELISA BUZELIN", end: "RUA JAIR AFONSO INACIO", num: "277", bairro: "PIRATININGA", lat: -19.8050607481356, lng: -43.9828380010853 },
+  { cod: "9013", reg: "VENDA NOVA", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL DE ENSINO ESPECIAL DO BAIRRO VENDA NOVA", end: "RUA CARLOS TORREZANI", num: "190", bairro: "LETICIA", lat: -19.8084766664578, lng: -43.97878555131 },
+  { cod: "9014", reg: "VENDA NOVA", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL GERALDO TEIXEIRA DA COSTA", end: "RUA MARCIO LIMA PAIXAO", num: "9", bairro: "RIO BRANCO", lat: -19.8150684562672, lng: -43.9761830340503 },
+  { cod: "9015", reg: "VENDA NOVA", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL GRACY VIANNA LAGE", end: "RUA JOAO SOARES LEAL", num: "23", bairro: "JARDIM DOS COMERCIARIOS", lat: -19.789232780063, lng: -43.9715579702693 },
+  { cod: "9016", reg: "VENDA NOVA", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL JOAQUIM DOS SANTOS", end: "RUA ANTONIO JOSE DOS SANTOS", num: "300", bairro: "CEU AZUL", lat: -19.8253753968709, lng: -43.9958974792417 },
+  { cod: "9017", reg: "VENDA NOVA", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL JOSE MARIA ALKMIM", end: "RUA BENIGNO FAGUNDES DA SILVA", num: "33", bairro: "SERRA VERDE", lat: -19.7981032900059, lng: -43.9542953756095 },
+  { cod: "9018", reg: "VENDA NOVA", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL MARIO MOURAO FILHO", end: "RUA MARIA GERTRUDES SANTOS", num: "1029", bairro: "CEU AZUL", lat: -19.8122299661293, lng: -44.0043153668623 },
+  { cod: "9019", reg: "VENDA NOVA", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL MILTON CAMPOS", end: "RUA JOVINO RODRIGUES PEGO", num: "195", bairro: "MANTIQUEIRA", lat: -19.7960849279702, lng: -43.9847672579397 },
+  { cod: "9020", reg: "VENDA NOVA", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL MOYSES KALIL", end: "RUA AFONSO PEREIRA DA SILVA", num: "10", bairro: "MANTIQUEIRA", lat: -19.7897641133072, lng: -43.9819512477299 },
+  { cod: "9021", reg: "VENDA NOVA", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL PADRE MARZANO MATIAS", end: "RUA ERICO VERISSIMO", num: "1280", bairro: "RIO BRANCO", lat: -19.8151816167403, lng: -43.9746654770519 },
+  { cod: "9022", reg: "VENDA NOVA", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL PRESIDENTE TANCREDO NEVES", end: "RUA RADIALISTA JOAQUIM DA FONSECA", num: "45", bairro: "CEU AZUL", lat: -19.8185291107273, lng: -44.0024095630448 },
+  { cod: "9023", reg: "VENDA NOVA", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL PROFESSOR MOACYR ANDRADE", end: "RUA DOS CACADORES", num: "93", bairro: "LAGOA", lat: -19.8075972489537, lng: -43.997193407242 },
+  { cod: "9024", reg: "VENDA NOVA", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL PROFESSOR PEDRO GUERRA", end: "RUA JOAO FERREIRA DA SILVA", num: "230", bairro: "MANTIQUEIRA", lat: -19.8019290458222, lng: -43.9880572451383 },
+  { cod: "9025", reg: "VENDA NOVA", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL PROFESSOR TABAJARA PEDROSO", end: "RUA GERALDO ANUNCIACAO", num: "45", bairro: "RIO BRANCO", lat: -19.8119771352834, lng: -43.9785647404032 },
+  { cod: "9026", reg: "VENDA NOVA", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL PROFESSORA ONDINA NOBRE", end: "RUA RADIALISTA JOSE JUNQUILHO", num: "100", bairro: "CEU AZUL", lat: -19.8250391776724, lng: -44.0041745915334 },
+  { cod: "9027", reg: "VENDA NOVA", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL TANCREDO PHIDEAS GUIMARAES", end: "RUA SATURNO", num: "400", bairro: "PARQUE SAO PEDRO", lat: -19.8147591764684, lng: -43.9501440874607 },
+  { cod: "9028", reg: "VENDA NOVA", tipo: "EMEI", nome: "EMEI VEREADOR ANTONIO MENEZES", end: "RUA CARLOS TORREZANI", num: "190", bairro: "LETICIA", lat: -19.8084886734324, lng: -43.9787209212055 },
+  { cod: "9029", reg: "VENDA NOVA", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL VICENTE GUIMARAES", end: "RUA IZAURA PEREIRA ALMEIDA", num: "110", bairro: "LETICIA", lat: -19.8093550158889, lng: -43.9795882849909 },
+  { cod: "9030", reg: "VENDA NOVA", tipo: "EMEI", nome: "EMEI ALESSANDRA SALUM CADAR", end: "RUA BUDAPESTE", num: "68", bairro: "EUROPA", lat: -19.8042445851815, lng: -43.9692291530348 },
+  { cod: "9031", reg: "VENDA NOVA", tipo: "EMEI", nome: "EMEI MIRIAM BRANDAO", end: "RUA JOAO BATISTA FERNANDES", num: "75", bairro: "SERRA VERDE", lat: -19.7989654711406, lng: -43.9567660739108 },
+  { cod: "9032", reg: "VENDA NOVA", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL DOUTOR JOSE XAVIER NOGUEIRA", end: "RUA NAVARRA", num: "100", bairro: "EUROPA", lat: -19.8027118834442, lng: -43.9627653522812 },
+  { cod: "9033", reg: "VENDA NOVA", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL ZILDA ARNS", end: "RUA ERVA MATE", num: "46", bairro: "PIRATININGA", lat: -19.8180365249755, lng: -43.992168838792 },
+  { cod: "9034", reg: "VENDA NOVA", tipo: "ESCOLA", nome: "ESCOLA MUNICIPAL JARDIM LEBLON", end: "RUA SILVA XAVIER", num: "15", bairro: "JARDIM LEBLON", lat: -19.8268361296666, lng: -43.9854554716693 },
+  { cod: "9063", reg: "VENDA NOVA", tipo: "EMEI", nome: "EMEI PARAUNAS", end: "RUA PADRE PEDRO PINTO", num: "5700", bairro: "MARIA HELENA", lat: -19.8032604068345, lng: -43.9882853065452 },
+  { cod: "9064", reg: "VENDA NOVA", tipo: "EMEI", nome: "EMEI CEU AZUL", end: "RUA SAO JOAO BATISTA DO GLORIA", num: "530", bairro: "PIRATININGA", lat: -19.8202540821188, lng: -43.9918156946358 },
+  { cod: "9065", reg: "VENDA NOVA", tipo: "EMEI", nome: "EMEI VILA APOLONIA", end: "RUA MARROCOS", num: "678", bairro: "APOLONIA", lat: -19.8274700696069, lng: -43.9926697944364 },
+  { cod: "9066", reg: "VENDA NOVA", tipo: "EMEI", nome: "EMEI JARDIM LEBLON", end: "RUA PEDRINOPOLIS", num: "395", bairro: "JARDIM LEBLON", lat: -19.829733743894, lng: -43.988938553258 },
+  { cod: "9067", reg: "VENDA NOVA", tipo: "EMEI", nome: "EMEI ITAMARATI", end: "RUA DOS COMANCHES", num: "245", bairro: "SANTA MONICA", lat: -19.8318412952306, lng: -43.9804325871542 },
+  { cod: "9068", reg: "VENDA NOVA", tipo: "EMEI", nome: "EMEI JARDIM DOS COMERCIARIOS", end: "RUA SETE DE OUTUBRO", num: "600", bairro: "JARDIM DOS COMERCIARIOS", lat: -19.7907995108906, lng: -43.9764172168662 },
+  { cod: "9069", reg: "VENDA NOVA", tipo: "EMEI", nome: "EMEI LAGOA", end: "RUA HELCIO PEREIRA FORTES", num: "6", bairro: "LAGOA", lat: -19.809690523008, lng: -44.0000801123392 },
+  { cod: "9070", reg: "VENDA NOVA", tipo: "EMEI", nome: "EMEI VENDA NOVA", end: "RUA DOUTOR ALVARO CAMARGOS", num: "200", bairro: "SAO JOAO BATISTA", lat: -19.8197020433546, lng: -43.9538670001198 },
+  { cod: "9071", reg: "VENDA NOVA", tipo: "EMEI", nome: "EMEI NAVEGANTES", end: "RUA RADIALISTA JOSE JUNQUILHO", num: "32", bairro: "CEU AZUL", lat: -19.8243083733839, lng: -44.004344402407 },
+  { cod: "9072", reg: "VENDA NOVA", tipo: "EMEI", nome: "EMEI SAO JOAO BATISTA", end: "RUA PROFESSOR AIMORE DUTRA", num: "514", bairro: "SAO JOAO BATISTA", lat: -19.8236317145188, lng: -43.9619502457289 },
+  { cod: "9073", reg: "VENDA NOVA", tipo: "EMEI", nome: "EMEI SERRA VERDE", end: "RUA JOSE MACHADO RIBEIRO", num: "94", bairro: "CENACULO", lat: -19.8038965483015, lng: -43.9615297819549 },
+  { cod: "9074", reg: "VENDA NOVA", tipo: "EMEI", nome: "EMEI MANTIQUEIRA", end: "RUA ARAMITA FRANCISCA DOS SANTOS", num: "88", bairro: "MANTIQUEIRA", lat: -19.7881716088502, lng: -43.9784357006536 },
+  { cod: "9075", reg: "VENDA NOVA", tipo: "EMEI", nome: "EMEI NOVA IORQUE", end: "RUA EDIVALDO JARDIM", num: "400", bairro: "JARDIM DOS COMERCIARIOS", lat: -19.7937465253921, lng: -43.963930107985 },
+  { cod: "9076", reg: "VENDA NOVA", tipo: "EMEI", nome: "EMEI PIRATININGA", end: "RUA ALTINOPOLIS", num: "585", bairro: "PIRATININGA", lat: -19.8077612464011, lng: -43.9900312811361 },
+  { cod: "9101", reg: "VENDA NOVA", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE ANDRADAS", end: "RUA MARIANA AMELIA DE AZEVEDO", num: "21", bairro: "SAO JOAO BATISTA", lat: -19.8199103670815, lng: -43.9630503961007 },
+  { cod: "9102", reg: "VENDA NOVA", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE CEU AZUL", end: "RUA ALICE MARQUES", num: "187", bairro: "CEU AZUL", lat: -19.8195272200607, lng: -43.9984626056706 },
+  { cod: "9103", reg: "VENDA NOVA", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE COPACABANA", end: "RUA INGLATERRA", num: "940", bairro: "COPACABANA", lat: -19.8342256519253, lng: -43.9860983684711 },
+  { cod: "9104", reg: "VENDA NOVA", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE JARDIM EUROPA", end: "RUA EDIMBURGO", num: "140", bairro: "EUROPA", lat: -19.8004395678413, lng: -43.9670976853269 },
+  { cod: "9105", reg: "VENDA NOVA", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE JARDIM LEBLON", end: "RUA HUMBERTO DE CAMPOS", num: "581", bairro: "JARDIM LEBLON", lat: -19.8299697813765, lng: -43.9873100114998 },
+  { cod: "9106", reg: "VENDA NOVA", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE LAGOA", end: "RUA JOSE SABINO MACIEL", num: "176", bairro: "LAGOA", lat: -19.8091975104371, lng: -44.0010922054691 },
+  { cod: "9107", reg: "VENDA NOVA", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE MANTIQUEIRA", end: "RUA CESAR SALLES BARBOSA", num: "600", bairro: "MANTIQUEIRA", lat: -19.7995605373159, lng: -43.9805727828561 },
+  { cod: "9108", reg: "VENDA NOVA", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE MINAS CAIXA", end: "RUA CAPITAO SERGIO PIRES", num: "226", bairro: "MINASCAIXA", lat: -19.8053142724735, lng: -43.9577971191925 },
+  { cod: "9109", reg: "VENDA NOVA", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE NOVA YORK", end: "RUA WILTON MARQUES PEREIRA", num: "10", bairro: "JARDIM DOS COMERCIARIOS", lat: -19.7942221378669, lng: -43.9680642114769 },
+  { cod: "9110", reg: "VENDA NOVA", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE PIRATININGA", end: "RUA CRAVO DA INDIA", num: "11", bairro: "PIRATININGA", lat: -19.8164259660832, lng: -43.9928595704332 },
+  { cod: "9111", reg: "VENDA NOVA", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE VISCONDE DO RIO BRANCO", end: "RUA CRISANTO MUNIZ", num: "120", bairro: "RIO BRANCO", lat: -19.8147902962272, lng: -43.9802543015297 },
+  { cod: "9113", reg: "VENDA NOVA", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE SANTA MONICA", end: "RUA DOS ZAPOTECAS", num: "98", bairro: "SANTA MONICA", lat: -19.8295486140239, lng: -43.9768580322341 },
+  { cod: "9114", reg: "VENDA NOVA", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE SERRA VERDE", end: "PCA FABRICIO SOARES DA SILVA", num: "10", bairro: "SERRA VERDE", lat: -19.7954055134633, lng: -43.9536416838991 },
+  { cod: "9115", reg: "VENDA NOVA", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE PARAUNA - VENDA NOVA", end: "RUA JOAO FERREIRA DA SILVA", num: "248", bairro: "MANTIQUEIRA", lat: -19.8024003390051, lng: -43.989109047258 },
+  { cod: "9116", reg: "VENDA NOVA", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE JARDIM DOS COMERCIARIOS", end: "RUA MARIA DA PAZ MAIA", num: "96", bairro: "JARDIM DOS COMERCIARIOS", lat: -19.788590126213, lng: -43.9767252540129 },
+  { cod: "9117", reg: "VENDA NOVA", tipo: "CENTRO DE SAUDE", nome: "ANEXO DO CENTRO DE SAUDE JARDIM DOS COMERCIARIOS", end: "RUA JAIR NEGRAO DE LIMA", num: "1058", bairro: "JARDIM DOS COMERCIARIOS", lat: -19.7985887880564, lng: -43.9752465358715 },
+  { cod: "9118", reg: "VENDA NOVA", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE SANTO ANTONIO", end: "RUA IRINEU PINTO", num: "255", bairro: "VENDA NOVA", lat: -19.8177476199372, lng: -43.9588838868215 },
+  { cod: "9119", reg: "VENDA NOVA", tipo: "CENTRO DE SAUDE", nome: "CENTRO DE SAUDE SANTA MONICA II - ALAMEDA DOS IPES", end: "RUA MINISTRO OLIVEIRA SALAZAR", num: "1186", bairro: "SANTA MONICA", lat: -19.8178525886035, lng: -43.9738748921373 },
+  { cod: "9150", reg: "VENDA NOVA", tipo: "UPA", nome: "UNIDADE DE PRONTO ATENDIMENTO VENDA NOVA", end: "RUA PADRE PEDRO PINTO", num: "175", bairro: "SAO JOAO BATISTA", lat: -19.8201728422598, lng: -43.9533196663099 },
+  { cod: "9201", reg: "VENDA NOVA", tipo: "LABORATORIO", nome: "LABORATORIO REGIONAL NORTE-VENDA NOVA", end: "RUA PADRE PEDRO PINTO", num: "2277", bairro: "CANDELARIA", lat: -19.8092363844784, lng: -43.9693580665457 },
+  { cod: "9202", reg: "VENDA NOVA", tipo: "CENTRAL DE ESTERILIZAÇAO", nome: "CENTRAL DE ESTERILIZAÇAO VENDA NOVA", end: "RUA JOSE ROCHA PAIXAO", num: "10", bairro: "CEU AZUL", lat: -19.8207919105199, lng: -44.0059188623934 },
+  { cod: "9204", reg: "VENDA NOVA", tipo: "CC", nome: "CENTRO DE CONVIVENCIA MARCUS MATRAGA", end: "RUA EXPEDICIONARIO AMERICO FERNANDES", num: "116", bairro: "SAO JOAO BATISTA", lat: -19.8234022324955, lng: -43.9607355030605 },
+  { cod: "9205", reg: "VENDA NOVA", tipo: "CENTRO CULTURAL", nome: "CENTRO CULTURAL VENDA NOVA", end: "RUA JOSE FERREIRA DOS SANTOS", num: "184", bairro: "JARDIM DOS COMERCIARIOS", lat: -19.7999111710672, lng: -43.9728173008427 },
+  { cod: "9207", reg: "VENDA NOVA", tipo: "CERSAM", nome: "CENTRO DE REFERENCIA EM SAUDE MENTAL VENDA NOVA", end: "RUA DOS CANOEIROS", num: "320", bairro: "SANTA MONICA", lat: -19.8289833881828, lng: -43.9768976569043 },
+  { cod: "9208", reg: "VENDA NOVA", tipo: "CEVAE", nome: "CEVAE SERRA VERDE", end: "RUA SEBASTIAO GOMES PEREIRA", num: "140", bairro: "SERRA VERDE", lat: -19.794304674107, lng: -43.9527419362594 },
+  { cod: "9210", reg: "VENDA NOVA", tipo: "CEM", nome: "CENTRO DE ESPECIALIDADES MEDICAS VENDA NOVA", end: "RUA PADRE PEDRO PINTO", num: "173", bairro: "SAO JOAO BATISTA", lat: -19.8200477504898, lng: -43.9531145671363 },
+  { cod: "9212", reg: "VENDA NOVA", tipo: "FARMACIA", nome: "FARMACIA DISTRITAL VENDA NOVA", end: "RUA HAIA", num: "148", bairro: "EUROPA", lat: -19.8028531736008, lng: -43.9678819915277 },
+  { cod: "9213", reg: "VENDA NOVA", tipo: "CARE", nome: "COORDENADORIA DE ATENDIMENTO REGIONAL VENDA NOVA", end: "RUA LOURDES PAULA CORDEIRO", num: "1071", bairro: "VENDA NOVA", lat: -19.8149566198829, lng: -43.9598529420817 },
+  { cod: "9216", reg: "VENDA NOVA", tipo: "GERENCIA", nome: "GERENCIA DE PARQUES VENDA NOVA E NORTE", end: "RUA PADRE PEDRO PINTO", num: "739", bairro: "VENDA NOVA", lat: -19.8161455533836, lng: -43.9567945065046 },
+  { cod: "9217", reg: "VENDA NOVA", tipo: "GERENCIA", nome: "GERENCIA ARRECADACAO REGIONAL VENDA NOVA", end: "RUA LOURDES PAULA CORDEIRO", num: "1071", bairro: "VENDA NOVA", lat: -19.8149566489066, lng: -43.9598529143746 },
+  { cod: "9221", reg: "VENDA NOVA", tipo: "DRAS", nome: "DIRETORIA REGIONAL DE ASSISTENCIA SOCIAL VENDA NOVA", end: "RUA LOURDES PAULA CORDEIRO", num: "1071", bairro: "VENDA NOVA", lat: -19.8149566489066, lng: -43.9598529143746 },
+  { cod: "9225", reg: "VENDA NOVA", tipo: "DIRE", nome: "DIRETORIA REGIONAL DE EDUCACAO VENDA NOVA", end: "AVE VILARINHO", num: "1300", bairro: "PARQUE SAO PEDRO", lat: -19.8153447451895, lng: -43.9541457749323 },
+  { cod: "9236", reg: "VENDA NOVA", tipo: "GERENCIA", nome: "GERENCIA REGIONAL DE LIMPEZA URBANA VENDA NOVA", end: "AVE LIEGE", num: "10", bairro: "EUROPA", lat: -19.803384933824, lng: -43.9720699867209 },
+  { cod: "9237", reg: "VENDA NOVA", tipo: "GERMA", nome: "GERENCIA REGIONAL DE MANUTENCAO VENDA NOVA", end: "AVE VILARINHO", num: "5940", bairro: "MANTIQUEIRA", lat: -19.8011093939976, lng: -43.9881878500169 },
+  { cod: "9255", reg: "VENDA NOVA", tipo: "DRES", nome: "DIRETORIA REGIONAL DE SAUDE VENDA NOVA", end: "AVE VILARINHO", num: "1300", bairro: "PARQUE SAO PEDRO", lat: -19.8153447451895, lng: -43.9541457749323 },
+  { cod: "9257", reg: "VENDA NOVA", tipo: "DIRF", nome: "DIRETORIA REGIONAL DE FISCALIZAÇAO VENDA NOVA", end: "AVE VILARINHO", num: "1300", bairro: "PARQUE SAO PEDRO", lat: -19.8153447451895, lng: -43.9541457749323 },
+  { cod: "9259", reg: "VENDA NOVA", tipo: "CRAS", nome: "CENTRO DE REFERENCIA DE ASSISTENCIA SOCIAL MANTIQUEIRA", end: "RUA LUZIA SALOMAO", num: "300", bairro: "MANTIQUEIRA", lat: -19.8005869947623, lng: -43.9811478188987 },
+  { cod: "9260", reg: "VENDA NOVA", tipo: "CRAS", nome: "CENTRO DE REFERENCIA DE ASSISTENCIA  SOCIAL APOLONIA", end: "RUA VISCONDE DE ITABORAI", num: "304", bairro: "JARDIM LEBLON", lat: -19.8287433699216, lng: -43.987316129124 },
+  { cod: "9261", reg: "VENDA NOVA", tipo: "CEO", nome: "CENTRO DE ESPECIALIDADES ODONTOLOGICAS VENDA NOVA", end: "RUA EUGENIO VOLPINI", num: "143", bairro: "SAO JOAO BATISTA", lat: -19.8261937491754, lng: -43.9600460062058 },
+  { cod: "9264", reg: "VENDA NOVA", tipo: "URPV", nome: "URPV CEU AZUL", end: "RUA RADIALISTA JOAO ALVES", num: "52", bairro: "CEU AZUL", lat: -19.8151834888657, lng: -44.001648682093 },
+  { cod: "9269", reg: "VENDA NOVA", tipo: "ESTAÇAO DE INTEGRAÇAO", nome: "ESTAÇAO INTEGRACAO BHBUS/MOVE VENDA NOVA", end: "RUA PADRE PEDRO PINTO", num: "2277", bairro: "CANDELARIA", lat: -19.8095069392611, lng: -43.9698103254215 },
+  { cod: "9270", reg: "VENDA NOVA", tipo: "GERAT", nome: "GERENCIA REGIONAL DE ATENDIMENTO AO CIDADAO VENDA NOVA", end: "RUA LOURDES PAULA CORDEIRO", num: "1071", bairro: "VENDA NOVA", lat: -19.8149566489066, lng: -43.9598529143746 },
+  { cod: "9271", reg: "VENDA NOVA", tipo: "ESTAÇAO DE INTEGRAÇAO", nome: "ESTAÇAO INTEGRACAO BHBUS/MOVE/METROPOLITANO VILARINHO", end: "AVE VILARINHO", num: "36", bairro: "VILA CLORIS", lat: -19.8209605266771, lng: -43.9472392033308 },
+  { cod: "9273", reg: "VENDA NOVA", tipo: "RESTAURANTE", nome: "RESTAURANTE POPULAR MARIA REGINA NABUCO", end: "RUA PADRE PEDRO PINTO", num: "2277", bairro: "CANDELARIA", lat: -19.8092363844784, lng: -43.9693580665457 },
+  { cod: "9276", reg: "VENDA NOVA", tipo: "CRAS", nome: "CENTRO DE REFERENCIA DE ASSISTENCIA SOCIAL LAGOA", end: "RUA JOSE SABINO MACIEL", num: "120", bairro: "LAGOA", lat: -19.8096040761169, lng: -44.0008564845437 },
+  { cod: "9278", reg: "VENDA NOVA", tipo: "ACADEMIA DA CIDADE", nome: "ACADEMIA DA CIDADE SERRA VERDE", end: "RUA JOAO BATISTA FERNANDES", num: "85", bairro: "SERRA VERDE", lat: -19.7984657334516, lng: -43.9569237759955 },
+  { cod: "9280", reg: "VENDA NOVA", tipo: "ACADEMIA DA CIDADE", nome: "ACADEMIA DA CIDADE JARDIM LEBLON", end: "RUA MARIA ALINE LOPES", num: "18", bairro: "RIO BRANCO", lat: -19.8205229720044, lng: -43.9897451350079 },
+  { cod: "9281", reg: "VENDA NOVA", tipo: "ACADEMIA DA CIDADE", nome: "ACADEMIA DA CIDADE VENDA NOVA", end: "RUA JOAO FERREIRA DA SILVA", num: "1700", bairro: "MARIA HELENA", lat: -19.8012194413247, lng: -43.9918950989042 },
+  { cod: "9282", reg: "VENDA NOVA", tipo: "ACADEMIA DA CIDADE", nome: "ACADEMIA DA CIDADE MINASCAIXA", end: "RUA JULITA NUNES LIMA", num: "147", bairro: "CONJUNTO MINASCAIXA", lat: -19.8058529428483, lng: -43.9590021520308 },
+  { cod: "9283", reg: "VENDA NOVA", tipo: "ACADEMIA DA CIDADE", nome: "ACADEMIA DA CIDADE SANTA MONICA", end: "RUA COMENDADOR ARTHUR VIANA", num: "345", bairro: "RIO BRANCO", lat: -19.8221156338028, lng: -43.9830268311799 },
+  { cod: "9285", reg: "VENDA NOVA", tipo: "URPV", nome: "URPV RIO BRANCO", end: "RUA AUGUSTO DOS ANJOS", num: "1983", bairro: "RIO BRANCO", lat: -19.8192310796181, lng: -43.9870375078906 },
+  { cod: "9286", reg: "VENDA NOVA", tipo: "URPV", nome: "URPV SAO JOAO BATISTA", end: "RUA ELCE RIBEIRO", num: "340", bairro: "SAO JOAO BATISTA", lat: -19.8210509363676, lng: -43.9653549469863 },
+  { cod: "9288", reg: "VENDA NOVA", tipo: "URPV", nome: "URPV VILARINHO", end: "AVE VILARINHO", num: "4441", bairro: "LETICIA", lat: -19.8026273356252, lng: -43.9765527636951 },
+  { cod: "9290", reg: "VENDA NOVA", tipo: "PRAÇA", nome: "PRAÇA JOAO JOSE DE ARAUJO", end: "RUA WALFRIDO TEIXEIRA SIMOES", num: "250", bairro: "MINASCAIXA", lat: -19.8072601221218, lng: -43.9585959153103 },
+  { cod: "9291", reg: "VENDA NOVA", tipo: "CAEI", nome: "CENTRO DE APOIO A ESCOLA INTEGRADA (E.M. ANTONIA FERREIRA)", end: "RUA MARIA DE LOURDES CARREIRA", num: "47", bairro: "SAO JOAO BATISTA", lat: -19.8176714557476, lng: -43.9665644525072 },
+  { cod: "9292", reg: "VENDA NOVA", tipo: "PRAÇA", nome: "PRAÇA JOSE BELEM BARBOSA", end: "PCA JOSE BELEM BARBOSA", num: "80", bairro: "SAO JOAO BATISTA", lat: -19.8270498916766, lng: -43.96320699018 },
+  { cod: "9293", reg: "VENDA NOVA", tipo: "PRAÇA", nome: "PRAÇA DIADEMA", end: "PCA DIADEMA", num: "35", bairro: "PIRATININGA", lat: -19.8085939437864, lng: -43.9864816516962 },
+  { cod: "9294", reg: "VENDA NOVA", tipo: "PRAÇA", nome: "PRAÇA JOSE JEREMIAS DE MESQUITA", end: "RUA RADIALISTA JOSE CORREIA", num: "26", bairro: "CEU AZUL", lat: -19.8179793552437, lng: -43.9964928239699 },
+  { cod: "9295", reg: "VENDA NOVA", tipo: "PRAÇA", nome: "PRAÇA ITABAJARA DICO PASSOS", end: "RUA BERLIM", num: "104", bairro: "EUROPA", lat: -19.7974954123675, lng: -43.970378674738 },
+  { cod: "9296", reg: "VENDA NOVA", tipo: "PRAÇA", nome: "PRAÇA ELBA", end: "RUA MARECHAL FALCONIERE", num: "912", bairro: "EUROPA", lat: -19.7997757733839, lng: -43.9649454572521 },
+  { cod: "9297", reg: "VENDA NOVA", tipo: "CICCR", nome: "CENTRO INTEGRADO DE COMANDO E CONTROLE REGIONAL", end: "ROD PAPA JOAO PAULO II", num: "3777", bairro: "SERRA VERDE", lat: -19.7871539301216, lng: -43.9498392359466 },
+  { cod: "9298", reg: "VENDA NOVA", tipo: "PRAÇA", nome: "PRAÇA ALFREDO ALVES MARTINS", end: "RUA DOUTOR PEDRO RUELA", num: "332", bairro: "LETICIA", lat: -19.807899033776, lng: -43.980680796856 },
+  { cod: "9299", reg: "VENDA NOVA", tipo: "PRAÇA", nome: "PRAÇA GERALDO DE ARAUJO E SILVA", end: "RUA LUZIA SALOMAO", num: "240", bairro: "MANTIQUEIRA", lat: -19.80104841815, lng: -43.9811795136717 },
+  { cod: "9300", reg: "VENDA NOVA", tipo: "PRAÇA", nome: "PRAÇA FABRICIO SOARES DA SILVA", end: "PCA FABRICIO SOARES DA SILVA", num: "10", bairro: "SERRA VERDE", lat: -19.7955779537842, lng: -43.9532845733267 },
+  { cod: "9301", reg: "VENDA NOVA", tipo: "PRAÇA", nome: "PRAÇA CENTRAL", end: "BEC DO CAMPO", num: "77", bairro: "VILA SAO JOAO BATISTA", lat: -19.8211325585772, lng: -43.9603324894366 },
+  { cod: "9302", reg: "VENDA NOVA", tipo: "PRAÇA", nome: "PRAÇA MANOEL BATISTA BAIA", end: "PCA MANOEL BATISTA BAIA", num: "10", bairro: "MANTIQUEIRA", lat: -19.8000486862909, lng: -43.9839220022422 },
+  { cod: "9303", reg: "VENDA NOVA", tipo: "PRAÇA", nome: "PRAÇA CULTURA RACIONAL", end: "RUA ERICO VERISSIMO", num: "561", bairro: "SAO JOAO BATISTA", lat: -19.8163994244278, lng: -43.9679049484951 },
+  { cod: "9304", reg: "VENDA NOVA", tipo: "PRAÇA", nome: "PRAÇA DA ECONOMISA", end: "RUA DOS XAVANTES", num: "733", bairro: "SANTA MONICA", lat: -19.8261534934888, lng: -43.9799841913387 },
+  { cod: "9305", reg: "VENDA NOVA", tipo: "PRAÇA", nome: "PRAÇA JOAO VIANNA", end: "PCA JOAO VIANNA", num: "187", bairro: "RIO BRANCO", lat: -19.8209387183543, lng: -43.9800862426481 },
+  { cod: "9306", reg: "VENDA NOVA", tipo: "PRAÇA", nome: "PRAÇA JOSE NOGUEIRA DE SA", end: "PCA JOSE NOGUEIRA DE SA", num: "5", bairro: "RIO BRANCO", lat: -19.8161135570109, lng: -43.9802725362393 },
+  { cod: "9307", reg: "VENDA NOVA", tipo: "PRAÇA", nome: "PRAÇA DA PAZ CELESTIAL", end: "RUA JOSE SABINO MACIEL", num: "20", bairro: "LAGOA", lat: -19.809071345505, lng: -44.0002182116941 },
+  { cod: "9308", reg: "VENDA NOVA", tipo: "PRAÇA", nome: "PRAÇA MARIA VILAS BOAS", end: "RUA MARIA ROSA DA SILVA", num: "6", bairro: "MANTIQUEIRA", lat: -19.7940297614441, lng: -43.9888157851149 },
+  { cod: "9310", reg: "VENDA NOVA", tipo: "CASA DE PASSAGEM", nome: "CASA DE PASSAGEM CONSOLADOR", end: "RUA MADRE TEREZA", num: "208", bairro: "CENACULO", lat: -19.8072548873843, lng: -43.9664968131832 },
+  { cod: "9311", reg: "VENDA NOVA", tipo: "UNIDADE DE ACOLHIMENTO", nome: "UNIDADE DE ACOLHIMENTO INSTITUCIONAL PARA MULHERES", end: "RUA ARGENTINA", num: "39", bairro: "COPACABANA", lat: -19.8392059030152, lng: -43.9852296208565 },
+  { cod: "9317", reg: "VENDA NOVA", tipo: "PRAÇA", nome: "PRAÇA AMINTAS DE BARROS", end: "RUA SANTA CRUZ", num: "40", bairro: "VENDA NOVA", lat: -19.8147168552793, lng: -43.9599753518706 },
+  { cod: "9318", reg: "VENDA NOVA", tipo: "CREAB", nome: "CENTRO DE REFERENCIA EM REABILITACAO VENDA NOVA", end: "RUA ELCE RIBEIRO", num: "349", bairro: "SAO JOAO BATISTA", lat: -19.8197142849081, lng: -43.9634934946772 },
+  { cod: "9319", reg: "VENDA NOVA", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO AREA DA IGREJA", end: "RUA JAIR AFONSO INACIO", num: "310", bairro: "PIRATININGA", lat: -19.8051493353064, lng: -43.9840346446373 },
+  { cod: "9320", reg: "VENDA NOVA", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO AREA DO CAMPO LEBLON", end: "RUA VISCONDE DE ITABORAI", num: "296", bairro: "JARDIM LEBLON", lat: -19.8288497418242, lng: -43.9870448715199 },
+  { cod: "9321", reg: "VENDA NOVA", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO DA AVENIDA VILARINHO", end: "RUA JOAO FERREIRA DA SILVA", num: "431", bairro: "MARIA HELENA", lat: -19.8023026009452, lng: -43.9895299995833 },
+  { cod: "9323", reg: "VENDA NOVA", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO DA RUA H", end: "RUA H", num: "10", bairro: "CONJUNTO MINASCAIXA", lat: -19.8044511459727, lng: -43.9585754820407 },
+  { cod: "9324", reg: "VENDA NOVA", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO DA RUA RADIALISTA JUSCELINO DE SOUZA", end: "RUA RADIALISTA JUSCELINO SOUZA", num: "96", bairro: "CEU AZUL", lat: -19.8164752978121, lng: -44.0072628595898 },
+  { cod: "9325", reg: "VENDA NOVA", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO JARDIM DOS COMERCIARIOS", end: "RUA ANTONIO PORFIRIO LUIZ", num: "90", bairro: "EUROPA", lat: -19.7977323196813, lng: -43.9702539340422 },
+  { cod: "9326", reg: "VENDA NOVA", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PARQUE JARDIM LEBLON", end: "RUA MARIA ALINE LOPES", num: "18", bairro: "RIO BRANCO", lat: -19.8206548181686, lng: -43.9894278544714 },
+  { cod: "9327", reg: "VENDA NOVA", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PRAÇA ALEXANDRINA MARIA COUTINHO", end: "RUA MESSIAS COUTINHO", num: "5", bairro: "CEU AZUL", lat: -19.8283021541101, lng: -43.996626627695 },
+  { cod: "9329", reg: "VENDA NOVA", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PRAÇA AMINTHAS DE BARROS", end: "RUA PADRE PEDRO PINTO", num: "1112", bairro: "VENDA NOVA", lat: -19.8146361634721, lng: -43.9601461021869 },
+  { cod: "9330", reg: "VENDA NOVA", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PRAÇA CENTRAL", end: "BEC DO CAMPO", num: "77", bairro: "VILA SAO JOAO BATISTA", lat: -19.8211325585772, lng: -43.9603324894366 },
+  { cod: "9333", reg: "VENDA NOVA", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PRAÇA DE ESPORTES JOAO JOSE ARAUJO", end: "RUA WILSON ABRAO ABDO", num: "21", bairro: "MINASCAIXA", lat: -19.8074389331829, lng: -43.9586372009837 },
+  { cod: "9334", reg: "VENDA NOVA", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PRAÇA DEPUTADO DANIEL DE BARROS", end: "PCA DEPUTADO DANIEL DE BARROS", num: "1600", bairro: "MANTIQUEIRA", lat: -19.7879011878976, lng: -43.9817933369197 },
+  { cod: "9336", reg: "VENDA NOVA", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PRAÇA DO ENCONTRO", end: "RUA VERA GONCALVES TERRA", num: "396", bairro: "SERRA VERDE", lat: -19.7973952083991, lng: -43.9540472428935 },
+  { cod: "9338", reg: "VENDA NOVA", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PRAÇA EDNA HARRINGTON", end: "RUA IRMA FLORINDA DOS SANTOS", num: "124", bairro: "RIO BRANCO", lat: -19.8169053088863, lng: -43.9848585453372 },
+  { cod: "9339", reg: "VENDA NOVA", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PRAÇA ELBA", end: "RUA MARECHAL FALCONIERE", num: "912", bairro: "EUROPA", lat: -19.7997735408546, lng: -43.9648648797968 },
+  { cod: "9346", reg: "VENDA NOVA", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PRAÇA MALTA", end: "RUA NORUEGA", num: "13", bairro: "EUROPA", lat: -19.8042011612899, lng: -43.9657411457771 },
+  { cod: "9349", reg: "VENDA NOVA", tipo: "ACADEMIA A CEU ABERTO", nome: "ACADEMIA A CEU ABERTO PRAÇA PASTOR OSCAR GUILHERME", end: "PCA PASTOR OSCAR GUILHERME", num: "177", bairro: "SAO JOAO BATISTA", lat: -19.820216964959, lng: -43.9632095182868 },
+  { cod: "9351", reg: "VENDA NOVA", tipo: "CERSAMAD", nome: "CENTRO DE REFERENCIA EM SAUDE MENTAL ALCOOL E DROGAS VENDA NOVA", end: "PCA JOSE BELEM BARBOSA", num: "60", bairro: "SAO JOAO BATISTA", lat: -19.8266551274172, lng: -43.9633295599515 },
+  { cod: "9353", reg: "VENDA NOVA", tipo: "PRAÇA", nome: "PRAÇA LAREIRA E MARIMBONDO", end: "RUA DOUTOR ALVARO CAMARGOS", num: "1096", bairro: "SAO JOAO BATISTA", lat: -19.8246828328138, lng: -43.9601969534667 },
+  { cod: "9354", reg: "VENDA NOVA", tipo: "GCMBH", nome: "GUARDA CIVIL MUNICIPAL - INSPETORIA REGIONAL VENDA NOVA", end: "AVE VILARINHO", num: "36", bairro: "VILA CLORIS", lat: -19.8225644171097, lng: -43.9459544287104 },
+  { cod: "9355", reg: "VENDA NOVA", tipo: "PRAÇA", nome: "PRAÇA TRES MIL SETECENTOS E DEZENOVE", end: "RUA REPUBLICA TCHECA", num: "165", bairro: "LETICIA", lat: -19.8029056163103, lng: -43.9755089450143 },
+  { cod: "ET34", reg: "VENDA NOVA", tipo: "ESTAÇAO DE TRANSFERENCIA BRT-MOVE", nome: "ESTAÇAO TRANSFERENCIA MOVE CANDELARIA", end: "AVE VILARINHO", num: "2800", bairro: "CENACULO", lat: -19.8100715075594, lng: -43.9657996225374 },
+  { cod: "ET35", reg: "VENDA NOVA", tipo: "ESTAÇAO DE TRANSFERENCIA BRT-MOVE", nome: "ESTAÇAO TRANSFERENCIA MOVE MINAS CAIXA", end: "AVE VILARINHO", num: "2170", bairro: "MINASCAIXA", lat: -19.8121490039076, lng: -43.9607677725166 },
+  { cod: "ET36", reg: "VENDA NOVA", tipo: "ESTAÇAO DE TRANSFERENCIA BRT-MOVE", nome: "ESTAÇAO TRANSFERENCIA MOVE QUADRAS DO VILARINHO", end: "AVE VILARINHO", num: "1400", bairro: "VENDA NOVA", lat: -19.8148571632044, lng: -43.9550058214665 },
+  { cod: "ET37", reg: "VENDA NOVA", tipo: "ESTAÇAO DE TRANSFERENCIA BRT-MOVE", nome: "ESTAÇAO TRANSFERENCIA MOVE UPA VENDA NOVA", end: "AVE VILARINHO", num: "1070", bairro: "PARQUE SAO PEDRO", lat: -19.8181867378794, lng: -43.9526248226164 },
+  
+  // ... (Dados simulados para outras regionais para evitar mapa vazio)
+  { cod: "3001", reg: "LESTE", tipo: "ESCOLA", nome: "Escola M. Leste Mock 1", end: "Rua Leste 1", num: "10", bairro: "Santa Tereza" },
+  { cod: "3002", reg: "LESTE", tipo: "CS", nome: "Centro de Saude Leste Mock", end: "Rua Leste 2", num: "20", bairro: "Esplanada" },
+  { cod: "4001", reg: "NORDESTE", tipo: "ESCOLA", nome: "Escola M. Nordeste Mock 1", end: "Rua NE 1", num: "10", bairro: "União" },
+  { cod: "5001", reg: "NOROESTE", tipo: "ESCOLA", nome: "Escola M. Noroeste Mock 1", end: "Rua NO 1", num: "10", bairro: "Padre Eustáquio" },
+  { cod: "6001", reg: "NORTE", tipo: "ESCOLA", nome: "Escola M. Norte Mock 1", end: "Rua Norte 1", num: "10", bairro: "Jaqueline" },
+  { cod: "7001", reg: "OESTE", tipo: "ESCOLA", nome: "Escola M. Oeste Mock 1", end: "Rua Oeste 1", num: "10", bairro: "Havaí" },
+  { cod: "8001", reg: "PAMPULHA", tipo: "ESCOLA", nome: "Escola M. Pampulha Mock 1", end: "Rua Pampulha 1", num: "10", bairro: "Santa Amélia" },
+  { cod: "2501", reg: "CENTRO-SUL", tipo: "PREFEITURA", nome: "Prefeitura de BH", end: "Av. Afonso Pena", num: "1212", bairro: "Centro" },
 ];
 
-// --- REGENERATE MOCK_PROPRIOS logic ---
-
-export const MOCK_PROPRIOS: Proprio[] = (window as any).RAW_DATA_FULL ? (window as any).RAW_DATA_FULL.map((data: any) => {
-    // Logic logic provided below
-    return {};
-}) : [];
-
-// ATENÇÃO: Para facilitar o "Copy & Paste" sem perder os dados que já enviamos,
-// vou definir a função de transformação que deve ser usada.
-// Você deve aplicar essa função sobre o array RAW_DATA que já está no seu arquivo.
+// --- Mapeamento Correto ---
 
 export const mapRawToProprio = (data: any): Proprio => {
   let lat = 0;
   let lng = 0;
 
-  // 1. Se tiver coordenada real, usa
+  // 1. Se tiver coordenada real (GPS Exato - Barreiro/Venda Nova), usa
   if (data.lat && data.lng) {
     lat = parseFloat(data.lat);
     lng = parseFloat(data.lng);
   } 
-  // 2. Se tiver bairro mapeado, usa centro do bairro + jitter
-  else if (NEIGHBORHOOD_CENTERS[data.bairro]) {
+  // 2. Se tiver bairro mapeado, usa centro do bairro + jitter (Simulação Inteligente)
+  else if (data.bairro && NEIGHBORHOOD_CENTERS[data.bairro]) {
     const center = NEIGHBORHOOD_CENTERS[data.bairro];
-    const coord = generateCoord(center.lat, center.lng, 0.008); // Small spread within neighborhood
+    const coord = generateCoord(center.lat, center.lng, 0.008); 
     lat = coord.lat;
     lng = coord.lng;
   }
-  // 3. Fallback para centro da regional
+  // 3. Fallback para centro da regional (Simulação Genérica)
   else {
     const center = REGIONAL_CENTERS[data.reg] || { lat: -19.9167, lng: -43.9345 };
     const coord = generateCoord(center.lat, center.lng, 0.04);
@@ -107,7 +330,7 @@ export const mapRawToProprio = (data: any): Proprio => {
 
   return {
     cod: data.cod,
-    nome_equipamento: data.nome || data.nome_equipamento, // Handle mixed naming from CSV vs Manual
+    nome_equipamento: data.nome || data.nome_equipamento,
     tipo_logradouro: data.tipo || data.tipo_logradouro,
     nome_logradouro: data.end || data.nome_logradouro,
     numero_imovel: data.num || data.numero_imovel,
@@ -119,13 +342,35 @@ export const mapRawToProprio = (data: any): Proprio => {
   };
 };
 
-// Simulation Route Logic
+// Exportar MOCK_PROPRIOS usando a variável local RAW_DATA
+export const MOCK_PROPRIOS: Proprio[] = RAW_DATA.map(mapRawToProprio);
+
 export const getSimulationRoute = (regional: string): RoutePoint[] => {
-  // Filter proprios for the region
-  // Need to access the actual MOCK_PROPRIOS array exported in the real file
-  // For this snippet, assume MOCK_PROPRIOS is available globally or imported
-  // ... implementation same as before ...
-  return [];
+  const regionalProprios = MOCK_PROPRIOS.filter(p => p.regional === regional);
+  
+  if (regionalProprios.length < 2) {
+    // Fallback to regional center if no proprios
+    const center = REGIONAL_CENTERS[regional] || REGIONAL_CENTERS["CENTRO-SUL"];
+    return [
+      { lat: center.lat, lng: center.lng, timestamp: Date.now() },
+      { lat: center.lat + 0.01, lng: center.lng + 0.01, timestamp: Date.now() }
+    ];
+  }
+
+  // Create a loop visiting some points
+  const route: RoutePoint[] = [];
+  // Pick up to 5 random points
+  for (let i = 0; i < 5; i++) {
+    const p = regionalProprios[Math.floor(Math.random() * regionalProprios.length)];
+    route.push({
+      lat: p.lat,
+      lng: p.lng,
+      timestamp: Date.now()
+    });
+  }
+  // Close the loop
+  route.push(route[0]);
+  return route;
 };
 
 export const REGIONALS = [
