@@ -21,34 +21,54 @@ export const formatDate = (timestamp: number): string => {
 };
 
 export const formatTime = (timestamp: number): string => {
-  // Added seconds to make distinct visits clearer
   return new Date(timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 };
 
 // --- Daily Logic Helpers ---
 
-// Retorna o timestamp das 00:00:00 do dia atual (local time)
 export const getStartOfDay = (): number => {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
   return now.getTime();
 };
 
-// Retorna a diferença em dias entre um timestamp e agora
 export const getDaysSince = (timestamp: number): number => {
   const now = Date.now();
   const diff = now - timestamp;
   const oneDayMs = 1000 * 60 * 60 * 24;
-  return Math.floor(diff / oneDayMs);
+  return diff / oneDayMs; // Return float for more precision hours checking
 };
 
-// Verifica se o local exige visita qualitativa (foto)
 export const isQualitativeTarget = (nomeEquipamento: string): boolean => {
   const upper = nomeEquipamento.toUpperCase();
   return (
     upper.includes("ESCOLA") ||
     upper.includes("EMEI") ||
     upper.includes("CENTRO DE SAUDE") ||
-    upper.includes("UPA")
+    upper.includes("UPA") ||
+    upper.includes("HOSPITAL")
   );
+};
+
+/**
+ * Lógica Híbrida de Prioridade e Rotação
+ * 
+ * ALTA (Escolas, Saúde): Requer visita DIÁRIA. Se virou o dia, reseta para Vermelho.
+ * PADRAO (Praças, etc): Requer rotação. Válido por 48h.
+ */
+export const getProprioStatus = (lastVisitTs: number | undefined, priority: 'ALTA' | 'PADRAO'): 'green' | 'orange' | 'red' => {
+  if (!lastVisitTs) return 'red'; // Nunca visitado
+
+  if (priority === 'ALTA') {
+    // Regra Estrita: Tem que ter sido visitado HOJE (após 00:00)
+    const startOfToday = getStartOfDay();
+    return lastVisitTs >= startOfToday ? 'green' : 'red';
+  } else {
+    // Regra de Rotação: Válido por 48h
+    const daysSince = getDaysSince(lastVisitTs);
+    
+    if (daysSince < 2) return 'green'; // Menos de 48h (2 dias)
+    if (daysSince < 3) return 'orange'; // Entre 48h e 72h (Atenção/Renovar)
+    return 'red'; // Mais de 72h (Crítico)
+  }
 };

@@ -13,6 +13,7 @@ export interface Proprio {
   regional: string;
   lat: number;
   lng: number;
+  prioridade: 'ALTA' | 'PADRAO'; // Novo campo para lógica híbrida
 }
 
 export interface Visit {
