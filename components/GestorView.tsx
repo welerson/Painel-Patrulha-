@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { MapComponent } from './MapComponent';
 import { MOCK_PROPRIOS, REGIONALS, mapRawToProprio } from '../constants';
@@ -8,7 +9,8 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { BarChart, Bar, XAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-const ALL_PROPRIOS: Proprio[] = (window as any).RAW_DATA_FULL ? (window as any).RAW_DATA_FULL.map(mapRawToProprio) : MOCK_PROPRIOS;
+// Usar sempre o MOCK_PROPRIOS direto, pois ele contém a base de dados completa
+const ALL_PROPRIOS: Proprio[] = MOCK_PROPRIOS;
 
 interface GestorViewProps {
   user: UserSession;
@@ -127,7 +129,7 @@ export const GestorView: React.FC<GestorViewProps> = ({ user, onLogout }) => {
       formatTime(v.timestamp),
       v.idViatura,
       v.agente,
-      v.nome_equipamento.substring(0, 20),
+      (v.nome_equipamento || '').substring(0, 20),
       formatDuration(v.durationSeconds),
       ''
     ]);

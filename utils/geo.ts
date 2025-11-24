@@ -1,3 +1,4 @@
+
 // Haversine formula to calculate distance between two points
 export const getDistanceFromLatLonInMeters = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
   const R = 6371e3; // Radius of the earth in meters
@@ -40,6 +41,7 @@ export const getDaysSince = (timestamp: number): number => {
 };
 
 export const isQualitativeTarget = (nomeEquipamento: string): boolean => {
+  if (!nomeEquipamento) return false; // Guard clause against undefined
   const upper = nomeEquipamento.toUpperCase();
   return (
     upper.includes("ESCOLA") ||
@@ -54,7 +56,7 @@ export const isQualitativeTarget = (nomeEquipamento: string): boolean => {
  * Lógica Simplificada de Status (Corrigida para Azul):
  * 
  * - GREEN: Visitado HOJE (00:00 em diante). Meta cumprida.
- * - BLUE (Antigo Orange): Visitado recentemente (últimos 3 dias), mas NÃO HOJE. 
+ * - BLUE: Visitado recentemente (últimos 3 dias), mas NÃO HOJE. 
  *   Significa: "Está na validade, mas deve ser visitado hoje pela nova equipe".
  * - RED: Não visitado há mais de 3 dias. Crítico.
  */
