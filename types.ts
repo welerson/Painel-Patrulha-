@@ -13,7 +13,7 @@ export interface Proprio {
   regional: string;
   lat: number;
   lng: number;
-  prioridade: 'ALTA' | 'PADRAO'; // Novo campo para lógica híbrida
+  prioridade: 'ALTA' | 'PADRAO'; // ALTA (Diário) vs PADRAO (Rotação)
 }
 
 export interface Visit {
@@ -27,9 +27,9 @@ export interface Visit {
   idViatura: string;
   agente: string;
   regional: string;
-  photo?: string; // Base64 string da foto com marca d'agua
-  photoTimestamp?: number; // Momento exato da foto
-  durationSeconds?: number; // Tempo entre chegada e foto (permanência)
+  photo?: string; // Base64
+  photoTimestamp?: number;
+  durationSeconds?: number; // Tempo de permanência
 }
 
 export interface RoutePoint {

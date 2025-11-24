@@ -2,33 +2,31 @@ import React, { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, Circle } from 'react-leaflet';
 import L from 'leaflet';
 import { Proprio, RoutePoint, Visit } from '../types';
-import { formatTime, formatDate, getStartOfDay, getDaysSince, getProprioStatus } from '../utils/geo';
+import { formatTime, formatDate, getProprioStatus } from '../utils/geo';
 
-// Icons configuration based on status
+// Icons configuration
 const createIcon = (status: 'green' | 'orange' | 'red' | 'viatura', isViatura = false) => {
   const size = isViatura ? 32 : 14;
   
-  let colorHex = '#3b82f6'; // default blue fallback
+  let colorHex = '#3b82f6'; 
   let borderColor = 'white';
 
   if (isViatura) {
-    colorHex = '#ef4444'; // Red pulse for viatura
+    colorHex = '#ef4444';
   } else {
     switch (status) {
-      case 'green': // Valid / Visited Today
-        colorHex = '#10b981'; 
+      case 'green': 
+        colorHex = '#10b981'; // Verde
         break;
-      case 'orange': // Warning / Expiring soon -> AGORA AZUL
-        colorHex = '#3b82f6';
+      case 'orange': 
+        colorHex = '#3b82f6'; // AZUL (Antes era Laranja)
         break;
-      case 'red': // Critical / Needs Visit
-        colorHex = '#ef4444';
+      case 'red': 
+        colorHex = '#ef4444'; // Vermelho
         break;
     }
   }
   
-  const zIndex = isViatura ? 1000 : 1;
-
   return L.divIcon({
     className: 'custom-icon',
     html: `<div style="
@@ -96,20 +94,18 @@ export const MapComponent: React.FC<MapProps> = ({ proprios, visits, currentPosi
       
       <MapUpdater center={center} zoom={zoom} position={currentPosition} />
 
-      {/* Markers for Próprios */}
       {proprios.map(proprio => {
         const propVisits = getVisitInfo(proprio.cod);
         const lastVisit = propVisits.length > 0 ? propVisits[0] : undefined;
         
-        // New Hybrid Logic
         const status = getProprioStatus(lastVisit?.timestamp, proprio.prioridade);
         
-        // Legend logic for popup
+        // Legenda do Popup
         let statusText = "";
         if (proprio.prioridade === 'ALTA') {
-           statusText = status === 'green' ? 'Visitado Hoje (OK)' : 'Requer Visita Diária';
+           statusText = status === 'green' ? 'Visitado Hoje (OK)' : status === 'orange' ? 'Planejamento (Fazer Hoje)' : 'CRÍTICO (> 3 dias)';
         } else {
-           statusText = status === 'green' ? 'Em dia (Rotação OK)' : status === 'orange' ? 'Visita Expira em Breve' : 'Atrasado (> 3 dias)';
+           statusText = status === 'green' ? 'Em dia (Rotação OK)' : status === 'orange' ? 'Atenção (Expirando)' : 'Atrasado';
         }
         
         const statusColorClass = 
@@ -138,21 +134,21 @@ export const MapComponent: React.FC<MapProps> = ({ proprios, visits, currentPosi
                 <div className="pt-2 border-t border-slate-200 bg-slate-50 -mx-4 -mb-4 p-3 rounded-b">
                   <div className="flex items-center gap-2 mb-2">
                      <div className={`w-2 h-2 rounded-full ${status === 'green' ? 'bg-emerald-500' : status === 'orange' ? 'bg-blue-500' : 'bg-red-500'}`}></div>
-                     <span className={`${statusColorClass} font-bold text-xs`}>
+                     <span className={`${statusColorClass} font-bold text-xs uppercase`}>
                        {statusText}
                      </span>
                   </div>
                   
                   {lastVisit ? (
                     <div className="mb-2 text-xs text-slate-500">
-                      Última visita: <strong>{formatDate(lastVisit.timestamp)}</strong> às {formatTime(lastVisit.timestamp)}
+                      Última: <strong>{formatDate(lastVisit.timestamp)}</strong> às {formatTime(lastVisit.timestamp)}
                       
                       {lastVisit.photo && (
                         <div className="mt-2">
-                          <p className="text-[10px] font-bold text-slate-400 mb-1">PROVA VISUAL (Última Visita)</p>
+                          <p className="text-[10px] font-bold text-slate-400 mb-1">PROVA VISUAL</p>
                           <img 
                             src={lastVisit.photo} 
-                            alt="Prova de Visita" 
+                            alt="Prova" 
                             className="w-full h-auto rounded border border-slate-300 shadow-sm cursor-pointer hover:opacity-90 transition"
                             onClick={() => {
                               const w = window.open("");

@@ -36,7 +36,7 @@ export const getDaysSince = (timestamp: number): number => {
   const now = Date.now();
   const diff = now - timestamp;
   const oneDayMs = 1000 * 60 * 60 * 24;
-  return diff / oneDayMs; // Return float for more precision hours checking
+  return diff / oneDayMs; 
 };
 
 export const isQualitativeTarget = (nomeEquipamento: string): boolean => {
@@ -51,24 +51,35 @@ export const isQualitativeTarget = (nomeEquipamento: string): boolean => {
 };
 
 /**
- * Lógica Híbrida de Prioridade e Rotação
+ * Lógica Híbrida de Prioridade:
  * 
- * ALTA (Escolas, Saúde): Requer visita DIÁRIA. Se virou o dia, reseta para Vermelho.
- * PADRAO (Praças, etc): Requer rotação. Válido por 48h.
+ * ALTA (Escolas/Saúde):
+ * - Verde: Feito HOJE (após 00:00).
+ * - Azul: Feito recentemente (1-2 dias), mas precisa refazer hoje (Planejamento).
+ * - Vermelho: Atrasado (> 3 dias).
+ * 
+ * PADRAO (Praças):
+ * - Verde: Válido por 48h (Rotação).
+ * - Azul: 48h-72h (Atenção).
+ * - Vermelho: > 72h (Atrasado).
  */
 export const getProprioStatus = (lastVisitTs: number | undefined, priority: 'ALTA' | 'PADRAO'): 'green' | 'orange' | 'red' => {
   if (!lastVisitTs) return 'red'; // Nunca visitado
 
+  const startOfToday = getStartOfDay();
+  const daysSince = getDaysSince(lastVisitTs);
+
   if (priority === 'ALTA') {
-    // Regra Estrita: Tem que ter sido visitado HOJE (após 00:00)
-    const startOfToday = getStartOfDay();
-    return lastVisitTs >= startOfToday ? 'green' : 'red';
+    // Alta Prioridade: Verde só se foi HOJE
+    if (lastVisitTs >= startOfToday) return 'green';
+    // Se foi ontem ou anteontem, é AZUL (Planejamento do dia, não crítico)
+    if (daysSince < 3) return 'orange';
+    // Se faz mais tempo, é VERMELHO (Crítico)
+    return 'red';
   } else {
-    // Regra de Rotação: Válido por 48h
-    const daysSince = getDaysSince(lastVisitTs);
-    
-    if (daysSince < 2) return 'green'; // Menos de 48h (2 dias)
-    if (daysSince < 3) return 'orange'; // Entre 48h e 72h (Atenção/Renovar)
-    return 'red'; // Mais de 72h (Crítico)
+    // Padrão: Rotação de equipes
+    if (daysSince < 2) return 'green'; // Verde por 48h
+    if (daysSince < 3) return 'orange'; // Azul entre 2 e 3 dias
+    return 'red'; // Crítico após 3 dias
   }
 };
