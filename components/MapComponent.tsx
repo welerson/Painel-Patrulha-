@@ -1,6 +1,6 @@
 
 import React, { useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, Circle } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Tooltip, Polyline, useMap, Circle } from 'react-leaflet';
 import L from 'leaflet';
 import { Proprio, RoutePoint, Visit } from '../types';
 import { formatTime, formatDate, getProprioStatus } from '../utils/geo';
@@ -46,6 +46,7 @@ const createIcon = (status: 'green' | 'blue' | 'red' | 'viatura', isViatura = fa
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
     popupAnchor: [0, -size / 2],
+    tooltipAnchor: [0, -size / 2], // Ajuste para centralizar o tooltip acima do ícone
   });
 };
 
@@ -99,7 +100,7 @@ export const MapComponent: React.FC<MapProps> = ({ proprios, visits, currentPosi
         const propVisits = getVisitInfo(proprio.cod);
         const lastVisit = propVisits.length > 0 ? propVisits[0] : undefined;
         
-        // Agora retorna 'green', 'blue' ou 'red'
+        // Retorna 'green', 'blue' ou 'red'
         const status = getProprioStatus(lastVisit?.timestamp, proprio.prioridade);
         
         let statusText = '';
@@ -124,7 +125,12 @@ export const MapComponent: React.FC<MapProps> = ({ proprios, visits, currentPosi
             icon={createIcon(status)}
             zIndexOffset={status === 'green' ? 0 : 10} 
           >
-            <Popup>
+            <Tooltip 
+              direction="top" 
+              offset={[0, -10]} 
+              opacity={1} 
+              interactive={true} // Permite clicar no conteúdo (ex: foto)
+            >
               <div className="text-sm min-w-[220px]">
                 <div className="flex justify-between items-start mb-1">
                    <h3 className="font-bold text-slate-800 text-base pr-2">{proprio.nome_equipamento}</h3>
@@ -137,7 +143,7 @@ export const MapComponent: React.FC<MapProps> = ({ proprios, visits, currentPosi
                 <p className="text-slate-600 mt-1">{proprio.tipo_logradouro} {proprio.nome_logradouro}, {proprio.numero_imovel}</p>
                 <p className="text-slate-500 text-xs mb-2">{proprio.bairro} - {proprio.regional}</p>
                 
-                <div className="pt-2 border-t border-slate-200 bg-slate-50 -mx-4 -mb-4 p-3 rounded-b">
+                <div className="pt-2 border-t border-slate-200 bg-slate-50 -mx-2 -mb-2 p-3 rounded-b">
                   <div className="flex items-center gap-2 mb-2">
                      <div className={`w-2 h-2 rounded-full ${statusBgClass}`}></div>
                      <span className={`${statusColorClass} font-bold text-xs uppercase`}>
@@ -174,7 +180,7 @@ export const MapComponent: React.FC<MapProps> = ({ proprios, visits, currentPosi
                   )}
                 </div>
               </div>
-            </Popup>
+            </Tooltip>
           </Marker>
         );
       })}
@@ -183,7 +189,7 @@ export const MapComponent: React.FC<MapProps> = ({ proprios, visits, currentPosi
         <>
           <Circle center={[currentPosition.lat, currentPosition.lng]} radius={70} pathOptions={{ color: 'red', fillColor: 'red', fillOpacity: 0.15, weight: 0 }} />
           <Marker position={[currentPosition.lat, currentPosition.lng]} icon={createIcon('viatura', true)} zIndexOffset={1000}>
-             <Popup>Viatura Atual</Popup>
+             <Tooltip direction="top" offset={[0, -16]}>Viatura Atual</Tooltip>
           </Marker>
         </>
       )}
