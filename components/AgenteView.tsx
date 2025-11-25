@@ -33,13 +33,10 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
   const simulationIntervalRef = useRef<any>(null);
   const activePatrolRef = useRef<ActivePatrol | null>(null);
   
-  // Throttling ref to prevent flooding Firebase with route updates
   const lastSaveTimeRef = useRef<number>(0);
-  
-  // Local Debounce Map: Stores timestamp of last visit per proprio ID locally
   const lastVisitTimeRef = useRef<Record<string, number>>({});
 
-  // Initialize with ALL proprios visible by default
+  // Initialize with ALL proprios
   const [filteredProprios, setFilteredProprios] = useState<Proprio[]>(MOCK_PROPRIOS);
   
   // Map Center Control - Start at BH Center
@@ -47,14 +44,9 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
   const [mapZoom, setMapZoom] = useState<number>(12);
 
   useEffect(() => {
-    // Inscrever para receber visitas em tempo real
     const unsubscribe = subscribeToVisits((visits) => {
       const sorted = visits.sort((a, b) => b.timestamp - a.timestamp);
       setNearbyVisits(sorted);
-    }, (error) => {
-       if (error.code !== 'permission-denied') {
-           // Silently handle permission errors for cleaner UI
-       }
     });
     return () => unsubscribe();
   }, []);
@@ -62,34 +54,56 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
   // Filter Proprios and Update Map Center when Regional changes
   useEffect(() => {
     if (selectedRegional) {
-      // Robust comparison: Trim and UpperCase
-      const filtered = MOCK_PROPRIOS.filter(p => 
-        p.regional && p.regional.toUpperCase().trim() === selectedRegional.toUpperCase().trim()
-      );
+      // Normalização para comparação segura
+      const targetRegional = selectedRegional.toUpperCase().trim();
+      
+      const filtered = MOCK_PROPRIOS.filter(p => {
+        if (!p.regional) return false;
+        // Normaliza a regional do próprio também
+        const pRegional = p.regional.toUpperCase().trim();
+        return pRegional === targetRegional;
+      });
       
       setFilteredProprios(filtered);
       
       // Auto-pan map to regional center
-      const center = REGIONAL_CENTERS[selectedRegional];
+      const center = REGIONAL_CENTERS[targetRegional]; // Busca pela chave normalizada
       if (center) {
         setMapCenter([center.lat, center.lng]);
-        setMapZoom(14); // Closer zoom to see points
+        setMapZoom(14);
+      } else {
+        // Fallback se a chave não bater exatamente (ex: CENTRO SUL vs CENTRO-SUL)
+        // Tenta encontrar uma chave parecida
+        const fuzzyKey = Object.keys(REGIONAL_CENTERS).find(k => 
+          k.replace(/[^A-Z]/g, '') === targetRegional.replace(/[^A-Z]/g, '')
+        );
+        if (fuzzyKey) {
+           const c = REGIONAL_CENTERS[fuzzyKey];
+           setMapCenter([c.lat, c.lng]);
+           setMapZoom(14);
+        }
       }
     } else {
       // Show ALL if no regional selected
       setFilteredProprios(MOCK_PROPRIOS);
-      setMapCenter([-19.9167, -43.9345]); // Reset to BH Center
+      setMapCenter([-19.9167, -43.9345]); 
       setMapZoom(12);
     }
   }, [selectedRegional]);
 
+  // Trigger resize on mount
+  useEffect(() => {
+    window.dispatchEvent(new Event('resize'));
+  }, []);
+
+  // ... (Camera and Patrol logic remains same - omitting for brevity, will include if requested or full file needed)
   // --- Camera Logic ---
   const startCamera = async (visit: Visit) => {
     setActiveVisitForPhoto(visit);
     setShowCamera(true);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: "environment" } // Use back camera if available
+        video: { facingMode: "environment" } 
       });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -119,15 +133,12 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
 
     if (!ctx) return;
 
-    // Set canvas dimensions to video dimensions
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
 
-    // Draw video frame
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    // --- Watermark Logic ---
-    const fontSize = Math.max(16, canvas.width * 0.03); // Responsive font size
+    const fontSize = Math.max(16, canvas.width * 0.03); 
     ctx.font = `bold ${fontSize}px monospace`;
     ctx.fillStyle = 'yellow';
     ctx.strokeStyle = 'black';
@@ -140,38 +151,32 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
     const timeStr = formatTime(now);
     const coordsStr = `LAT: ${activeVisitForPhoto.lat.toFixed(5)} LNG: ${activeVisitForPhoto.lng.toFixed(5)}`;
     const locationStr = activeVisitForPhoto.nome_equipamento.substring(0, 30);
-    // Informação de autoria
     const agentInfoStr = `Agente: ${user.name || 'N/A'} | ${viaturaId}`;
 
     const padding = 20;
     const lineHeight = fontSize * 1.2;
 
-    // Draw Text with Shadow/Stroke for visibility
     const drawText = (text: string, x: number, y: number) => {
       ctx.strokeText(text, x, y);
       ctx.fillText(text, x, y);
     };
 
-    // Bottom Left Positioning (Stacked upwards)
     drawText(agentInfoStr, padding, canvas.height - padding - lineHeight * 3);
     drawText(dateStr + ' ' + timeStr, padding, canvas.height - padding - lineHeight * 2);
     drawText(coordsStr, padding, canvas.height - padding - lineHeight);
     drawText(locationStr, padding, canvas.height - padding);
 
-    // Save Image
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.7); // Compress quality 0.7
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.7); 
     
-    // Calculate Duration
     const durationSeconds = Math.floor((now - activeVisitForPhoto.timestamp) / 1000);
 
-    // Update Visit in Firebase
     const updatedVisit: Visit = { 
       ...activeVisitForPhoto, 
       photo: dataUrl,
       photoTimestamp: now,
       durationSeconds: durationSeconds
     };
-    saveVisit(updatedVisit); // This will merge/update the existing visit
+    saveVisit(updatedVisit);
 
     stopCamera();
   };
@@ -207,7 +212,6 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
     setPatrolActive(true);
     setIsSimulating(simulate);
 
-    // Salvar estado inicial
     savePatrol(newPatrol);
 
     if (simulate) {
@@ -276,19 +280,16 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
     const timestamp = Date.now();
     const point: RoutePoint = { lat, lng, timestamp };
 
-    // Update UI State immediately for smooth animation
     setCurrentPos(point);
     patrolPathRef.current = [...patrolPathRef.current, point];
     setPatrolPath(patrolPathRef.current);
 
-    // THROTTLING: Save to Firebase only every 10 seconds to avoid saturation/resource exhaustion
     if (activePatrolRef.current && (timestamp - lastSaveTimeRef.current > 10000)) {
       activePatrolRef.current.pontos = patrolPathRef.current;
       savePatrol(activePatrolRef.current);
       lastSaveTimeRef.current = timestamp;
     }
 
-    // Check Proximity happens on every tick to ensure we don't miss a spot
     checkProximity(lat, lng, timestamp);
   };
 
@@ -300,7 +301,6 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
       clearInterval(simulationIntervalRef.current);
     }
     
-    // Force final save when stopping to ensure complete data
     if (activePatrolRef.current) {
       activePatrolRef.current.fimTurno = Date.now();
       activePatrolRef.current.pontos = patrolPathRef.current; 
@@ -313,8 +313,6 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
   };
 
   const checkProximity = (lat: number, lng: number, timestamp: number) => {
-    // Check against filtered proprios if regional is selected, otherwise check ALL
-    // Use filteredProprios which is updated by the useEffect
     const propriosToCheck = filteredProprios.length > 0 ? filteredProprios : MOCK_PROPRIOS;
 
     propriosToCheck.forEach(proprio => {
@@ -346,16 +344,14 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
       timestamp,
       idViatura: viaturaId,
       agente: user.name || 'Desconhecido',
-      regional: selectedRegional || proprio.regional // Use proprio regional if patrol is global
+      regional: selectedRegional || proprio.regional
     };
 
-    // Save to Firebase (Optimistic Update is handled by the subscription)
     saveVisit(newVisit);
       
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
   };
 
-  // Calculate today's visits for this specific vehicle
   const startOfToday = getStartOfDay();
   const visitsToday = nearbyVisits.filter(
     v => v.idViatura === viaturaId && v.timestamp >= startOfToday

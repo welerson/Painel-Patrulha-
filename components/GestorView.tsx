@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { MapComponent } from './MapComponent';
-import { MOCK_PROPRIOS, REGIONALS } from '../constants';
+import { MOCK_PROPRIOS, REGIONALS, mapRawToProprio } from '../constants';
 import { Visit, ActivePatrol, UserSession, Proprio } from '../types';
 import { subscribeToPatrols, subscribeToVisits } from '../services/storage';
 import { formatDate, formatTime, getProprioStatus, isQualitativeTarget } from '../utils/geo';
@@ -31,6 +31,9 @@ export const GestorView: React.FC<GestorViewProps> = ({ user, onLogout }) => {
   const [filteredRoutes, setFilteredRoutes] = useState<ActivePatrol[]>([]);
 
   const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
+
+  // Normaliza strings para comparação (remove acentos, espaços, traços)
+  const normalize = (str: string) => str.toUpperCase().replace(/[^A-Z0-9]/g, '');
 
   useEffect(() => {
     setPermissionError(false);
@@ -65,14 +68,16 @@ export const GestorView: React.FC<GestorViewProps> = ({ user, onLogout }) => {
     let r = allPatrols;
 
     if (filterRegional) {
-      v = v.filter(visit => visit.regional === filterRegional);
-      p = p.filter(prop => prop.regional === filterRegional);
-      r = r.filter(route => route.regional === filterRegional);
+      const target = normalize(filterRegional);
+      v = v.filter(visit => visit.regional && normalize(visit.regional) === target);
+      p = p.filter(prop => prop.regional && normalize(prop.regional) === target);
+      r = r.filter(route => route.regional && normalize(route.regional) === target);
     }
 
     if (filterViatura) {
-      v = v.filter(visit => visit.idViatura.includes(filterViatura));
-      r = r.filter(route => route.idViatura.includes(filterViatura));
+      const target = filterViatura.toLowerCase();
+      v = v.filter(visit => visit.idViatura.toLowerCase().includes(target));
+      r = r.filter(route => route.idViatura.toLowerCase().includes(target));
     }
 
     if (filterDate) {
@@ -149,22 +154,20 @@ export const GestorView: React.FC<GestorViewProps> = ({ user, onLogout }) => {
       startY: 70,
       head: [['Data', 'Hora', 'Viatura', 'Agente', 'Local', 'Duração', 'Foto']],
       body: tableData,
-      // Lógica para pintar texto de vermelho no PDF
       didParseCell: (data) => {
         if (data.section === 'body' && data.column.index === 6) {
+          // Pinta PENDENTE de vermelho
           if (data.cell.raw === 'PENDENTE') {
-            data.cell.styles.textColor = [220, 38, 38]; // Vermelho RGB
+            data.cell.styles.textColor = [220, 38, 38]; 
             data.cell.styles.fontStyle = 'bold';
           }
         }
       },
-      // Lógica para desenhar a imagem
       didDrawCell: (data) => {
         if (data.section === 'body' && data.column.index === 6) {
           const visit = filteredVisits[data.row.index];
           if (visit && visit.photo) { 
             try {
-              // Desenha a imagem na célula
               doc.addImage(visit.photo, 'JPEG', data.cell.x + 2, data.cell.y + 2, 10, 10);
             } catch (e) {}
           }
