@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { MapComponent } from './MapComponent';
-import { MOCK_PROPRIOS, REGIONALS, VISITING_RADIUS_METERS, DEBOUNCE_MINUTES, getSimulationRoute } from '../constants';
+import { MOCK_PROPRIOS, REGIONALS, VISITING_RADIUS_METERS, DEBOUNCE_MINUTES, getSimulationRoute, REGIONAL_CENTERS } from '../constants';
 import { ActivePatrol, Proprio, RoutePoint, Visit, UserSession } from '../types';
 import { getDistanceFromLatLonInMeters, getStartOfDay, isQualitativeTarget, formatDate, formatTime } from '../utils/geo';
 import { savePatrol, saveVisit, subscribeToVisits } from '../services/storage';
@@ -38,30 +39,47 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
   // Local Debounce Map: Stores timestamp of last visit per proprio ID locally
   const lastVisitTimeRef = useRef<Record<string, number>>({});
 
-  // Initialize filtered list of public buildings
-  const [filteredProprios, setFilteredProprios] = useState<Proprio[]>([]);
+  // Initialize with ALL proprios visible by default
+  const [filteredProprios, setFilteredProprios] = useState<Proprio[]>(MOCK_PROPRIOS);
+  
+  // Map Center Control - Start at BH Center
+  const [mapCenter, setMapCenter] = useState<[number, number] | undefined>([-19.9167, -43.9345]);
+  const [mapZoom, setMapZoom] = useState<number>(12);
 
   useEffect(() => {
     // Inscrever para receber visitas em tempo real
-    // Adicionado tratamento de erro para evitar crash caso permissões falhem
     const unsubscribe = subscribeToVisits((visits) => {
-      // Ordena por timestamp decrescente para mostrar a mais recente no topo
       const sorted = visits.sort((a, b) => b.timestamp - a.timestamp);
       setNearbyVisits(sorted);
     }, (error) => {
-       // Silenciar erro de permissão aqui pois a view do agente continua funcionando localmente
        if (error.code !== 'permission-denied') {
-           // console.error("Erro assinatura visitas (Agente):", error);
+           // Silently handle permission errors for cleaner UI
        }
     });
     return () => unsubscribe();
   }, []);
 
+  // Filter Proprios and Update Map Center when Regional changes
   useEffect(() => {
     if (selectedRegional) {
-      setFilteredProprios(MOCK_PROPRIOS.filter(p => p.regional === selectedRegional));
+      // Robust comparison: Trim and UpperCase
+      const filtered = MOCK_PROPRIOS.filter(p => 
+        p.regional && p.regional.toUpperCase().trim() === selectedRegional.toUpperCase().trim()
+      );
+      
+      setFilteredProprios(filtered);
+      
+      // Auto-pan map to regional center
+      const center = REGIONAL_CENTERS[selectedRegional];
+      if (center) {
+        setMapCenter([center.lat, center.lng]);
+        setMapZoom(14); // Closer zoom to see points
+      }
     } else {
+      // Show ALL if no regional selected
       setFilteredProprios(MOCK_PROPRIOS);
+      setMapCenter([-19.9167, -43.9345]); // Reset to BH Center
+      setMapZoom(12);
     }
   }, [selectedRegional]);
 
@@ -264,7 +282,6 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
     setPatrolPath(patrolPathRef.current);
 
     // THROTTLING: Save to Firebase only every 10 seconds to avoid saturation/resource exhaustion
-    // Increased from 2s to 10s to handle backpressure
     if (activePatrolRef.current && (timestamp - lastSaveTimeRef.current > 10000)) {
       activePatrolRef.current.pontos = patrolPathRef.current;
       savePatrol(activePatrolRef.current);
@@ -296,9 +313,9 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
   };
 
   const checkProximity = (lat: number, lng: number, timestamp: number) => {
-    const propriosToCheck = filteredProprios.length > 0 
-      ? filteredProprios 
-      : MOCK_PROPRIOS;
+    // Check against filtered proprios if regional is selected, otherwise check ALL
+    // Use filteredProprios which is updated by the useEffect
+    const propriosToCheck = filteredProprios.length > 0 ? filteredProprios : MOCK_PROPRIOS;
 
     propriosToCheck.forEach(proprio => {
       const dist = getDistanceFromLatLonInMeters(lat, lng, proprio.lat, proprio.lng);
@@ -329,7 +346,7 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
       timestamp,
       idViatura: viaturaId,
       agente: user.name || 'Desconhecido',
-      regional: selectedRegional
+      regional: selectedRegional || proprio.regional // Use proprio regional if patrol is global
     };
 
     // Save to Firebase (Optimistic Update is handled by the subscription)
@@ -373,7 +390,7 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
                   value={selectedRegional}
                   onChange={e => setSelectedRegional(e.target.value)}
                 >
-                  <option value="">Selecione a Regional</option>
+                  <option value="">Selecione a Regional (Todas)</option>
                   {REGIONALS.map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
             </div>
@@ -405,7 +422,7 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
                 </span>
                 {isSimulating ? 'Simulação Ativa' : 'Patrulhamento Ativo'}
               </span>
-              <span className="text-xs text-slate-600 font-mono">{viaturaId} • {selectedRegional}</span>
+              <span className="text-xs text-slate-600 font-mono">{viaturaId} • {selectedRegional || 'Geral'}</span>
             </div>
             <button 
               onClick={stopPatrol}
@@ -424,8 +441,8 @@ export const AgenteView: React.FC<AgenteViewProps> = ({ user, onLogout }) => {
           visits={nearbyVisits}
           currentPosition={currentPos}
           routePath={patrolPath}
-          center={!patrolActive ? [-19.9167, -43.9345] : undefined} 
-          zoom={patrolActive ? 15 : 12}
+          center={mapCenter} 
+          zoom={mapZoom}
         />
         
         {/* Visit Log Overlay (During Patrol) */}
